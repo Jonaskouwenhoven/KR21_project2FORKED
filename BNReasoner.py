@@ -92,10 +92,17 @@ class BNReasoner:
         
         return False
     
-    def marginalization(self):
+    def marginalization(self, X):
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
-        pass
+        cpt = self.bn.get_cpt(X)
+        newCpt = cpt.loc[cpt[X] == False].reset_index(drop=True)
+        new_p = [1.0 for i in range(len(newCpt))]
+        newCpt['p'] = new_p
+        newCpt.drop(columns=[X], inplace=True)
+        print(newCpt, "\n\n")
+        ## MOET ik de CPT ook updaten? Onduidelijk
+
     
     def maxingOut(self):
         #JONAS
@@ -139,7 +146,7 @@ class BNReasoner:
 if __name__ == '__main__':
     
     BN = BNReasoner('testing/lecture_example.BIFXML')
-
+    BN.marginalization('Slippery Road?')
     # BN.bn.draw_structure()
-    BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
+    # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
     exit()
