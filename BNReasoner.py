@@ -118,14 +118,30 @@ class BNReasoner:
                 dfList.append(trueDf.iloc[i])
                 
         maxedout = (pd.DataFrame(dfList))
+        
         print(maxedout,"\n\n", cpt)
         ## Werkt, wat nu?
     
     def factorMultiplication(self, f, g):
         #JONAS
-        #TODO: Factor multiplication: Given two factors f and g, compute the multiplied factor h=fg. (5pts) HALLLLOOOOOTEST
+        #TODO: Factor multiplication: Given two factors f and g, compute the multiplied factor h=fg. (5pts)
+        f_columns = (f.columns.drop('p'))
+        print("")
+        g_columns = (g.columns.drop('p'))
+        double = (f_columns).intersection(g_columns)[0]
+        if not double:
+            return False
         
-        pass
+        else:
+            new = pd.merge(f, g, on=double)
+            p = new['p_x'] * new['p_y']
+            new['p'] = new['p_x'] * new['p_y']
+            new.drop(columns=['p_x', 'p_y'], inplace=True)
+            
+        print(new)
+        # Werkt wat moet ik ermee!?
+
+        
     
     def ordering(self):
         #SICCO
@@ -158,7 +174,9 @@ class BNReasoner:
 if __name__ == '__main__':
     
     BN = BNReasoner('testing/lecture_example.BIFXML')
-    BN.maxingOut('Wet Grass?')
+    cptWet = BN.bn.get_cpt("Wet Grass?")
+    cptRain = BN.bn.get_cpt("Rain?")
+    BN.factorMultiplication(cptWet, cptRain)
     # BN.bn.draw_structure()
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
     exit()
