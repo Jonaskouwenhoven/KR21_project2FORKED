@@ -104,10 +104,22 @@ class BNReasoner:
         ## MOET ik de CPT ook updaten? Onduidelijk
 
     
-    def maxingOut(self):
+    def maxingOut(self, X):
         #JONAS
         #TODO: Maxing-out: Given a factor and a variable X, compute the CPT in which X is maxed-out. Remember to also keep track of which instantiation of X led to the maximized value. (5pts)
-        pass
+        cpt = self.bn.get_cpt(X)
+        falseDf = cpt.loc[cpt[X] == False].reset_index(drop=True)
+        trueDf = cpt.loc[cpt[X] == True].reset_index(drop=True)
+        dfList = []
+        for i, el in enumerate(zip(falseDf['p'].to_list(), trueDf['p'].to_list())):
+            if el[0] > el[1]:
+                dfList.append(falseDf.iloc[i])
+            else:
+                dfList.append(trueDf.iloc[i])
+                
+        maxedout = (pd.DataFrame(dfList))
+        print(maxedout,"\n\n", cpt)
+        ## Werkt, wat nu?
     
     def factorMultiplication(self, f, g):
         #JONAS
@@ -146,7 +158,7 @@ class BNReasoner:
 if __name__ == '__main__':
     
     BN = BNReasoner('testing/lecture_example.BIFXML')
-    BN.marginalization('Slippery Road?')
+    BN.maxingOut('Wet Grass?')
     # BN.bn.draw_structure()
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
     exit()
