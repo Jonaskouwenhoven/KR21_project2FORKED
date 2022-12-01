@@ -126,7 +126,6 @@ class BNReasoner:
         #JONAS
         #TODO: Factor multiplication: Given two factors f and g, compute the multiplied factor h=fg. (5pts)
         f_columns = (f.columns.drop('p'))
-        print("")
         g_columns = (g.columns.drop('p'))
         double = (f_columns).intersection(g_columns)[0]
         if not double:
@@ -134,7 +133,6 @@ class BNReasoner:
         
         else:
             new = pd.merge(f, g, on=double)
-            p = new['p_x'] * new['p_y']
             new['p'] = new['p_x'] * new['p_y']
             new.drop(columns=['p_x', 'p_y'], inplace=True)
             
