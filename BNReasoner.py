@@ -106,6 +106,11 @@ class BNReasoner:
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
             print(cpt)
 
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
 
     
     def maxingOut(self, X):
