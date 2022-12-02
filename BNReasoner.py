@@ -210,11 +210,11 @@ class BNReasoner:
                 cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
 
-                self.marginalization(cpt, node)
+                marg_factor = self.marginalization(cpt, node)
 
-                self.bn.update_cpt(child, cpt)
-                        
-        pass
+                self.bn.update_cpt(child, marg_factor)
+
+        return
     
     def marginalDistribution(self):
         #SICCO
