@@ -98,19 +98,14 @@ class BNReasoner:
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
         #NOTE: Hier moet nog wat aan gedaan worden. Er staat given a "factor" and a varaible X, maar nu gebruik je die factor niet. je moet ook de andere cpt aanpassen
-        cpt = self.bn.get_cpt(X)
+        #cpt = self.bn.get_cpt(X)
+       
         if X not in cpt.columns:
             return cpt
         else:
             new_columns = [c for c in (cpt.columns) if c not in [X, 'p']]
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
-            print(cpt)
-
-<<<<<<< Updated upstream
-=======
-
-
->>>>>>> Stashed changes
+            return cpt
 
     
     def maxingOut(self, X):
@@ -151,9 +146,9 @@ class BNReasoner:
         
     def _min_degree(self, X, int_graph):
         """Return the node with minimum degree in the graph"""
-        
-        int_sub_graph = [node for node in int_graph if node in X]
-        return min(int_sub_graph, key=lambda x: x[1])
+       
+        int_sub_graph = [node for node in int_graph.degree if node[0] in X]
+        return min(int_sub_graph, key=lambda x: x[1])[0]
     
     def _fill(self, int_graph, node):
         """Return the fill of a node in the graph"""
@@ -216,16 +211,37 @@ class BNReasoner:
                 cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
 
-                marg_factor = self.marginalization(cpt, node)
+                marg_factor = self.marginalization( node, cpt)
 
                 self.bn.update_cpt(child, marg_factor)
 
         return
     
-    def marginalDistribution(self, Q, e = None):
+    def marginalDistribution(self, Q, e = None, order_method = 'min_degree'):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
         
+        # get all factors
+        factors = BN.bn.get_all_cpts()
+ 
+        # reduce factors with regard to e
+        for node in BN.bn.get_all_variables():
+            new_factor = BN.bn.reduce_factor(pd.Series(e), factors[node])
+            BN.bn.update_cpt(node, new_factor)
+        
+        # order
+        evidence_node =  list(e.keys()) 
+        Q_plus_e = Q + evidence_node
+
+        self.variableElimination(Q_plus_e, order_method)
+
+        # posterior
+        joint_marginal = self.bn.get_cpt(Q[0])
+        prior = self.bn.get_cpt(evidence_node[0])
+
+        posterior = joint_marginal.copy()
+        posterior['p'] = joint_marginal['p'] / float(prior.loc[prior[evidence_node[0]]==e[evidence_node[0]], 'p'])
+
         return
     
     def MAP(self):
@@ -242,11 +258,12 @@ class BNReasoner:
 
 if __name__ == '__main__':
     
-    BN = BNReasoner('testing/dog_problem.BIFXML')
+    BN = BNReasoner('testing/lecture_example.BIFXML')
     # cptWet = BN.bn.get_cpt("Wet Grass?")
     # cptRain = BN.bn.get_cpt("Rain?")
     #BN.factorMultiplication(cptWet, cptRain)
 
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    print(BN.marginalDistribution(['light-on', 'bowel-problem'], e = {'dog-out':True}))
+    print(BN.marginalDistribution(['Rain?'], {'Winter?':True}))
+   
     exit()
