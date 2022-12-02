@@ -50,7 +50,7 @@ class BNReasoner:
     
     def netPrune(self,Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
-        
+        #TODO: NOg naar kijken wordt gezegd given query variables Q, die gebruiken we niet
         variables = self.bn.get_all_variables()
         for key in evidence.keys():
             variables.remove(key)
@@ -105,6 +105,7 @@ class BNReasoner:
             new_columns = [c for c in (cpt.columns) if c not in [X, 'p']]
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
             print(cpt)
+
 
 
     
@@ -165,6 +166,7 @@ class BNReasoner:
             tot += edges
     
         return tot/2
+    
     def draw_graph(self, graph):
         """Draw a graph with networkx"""
         nx.draw(graph, with_labels=True, node_size = 3000)
@@ -211,11 +213,11 @@ class BNReasoner:
                 cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
 
-                marg_factor = self.marginalization(cpt, node)
+                self.marginalization(cpt, node)
 
-                self.bn.update_cpt(child, marg_factor)
-
-        return
+                self.bn.update_cpt(child, cpt)
+                        
+        pass
     
     def marginalDistribution(self):
         #SICCO
@@ -242,5 +244,5 @@ if __name__ == '__main__':
     #BN.factorMultiplication(cptWet, cptRain)
 
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    print(BN.variableElimination(['light-on', 'bowel-problem', 'hear-bark']))
+    print(BN.marginalization('light-on', BN.bn.get_cpt('light-on')))
     exit()
