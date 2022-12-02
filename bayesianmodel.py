@@ -50,7 +50,7 @@ class BNReasoner:
     
     def netPrune(self,Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
-        
+        #TODO: NOg naar kijken wordt gezegd given query variables Q, die gebruiken we niet
         variables = self.bn.get_all_variables()
         for key in evidence.keys():
             variables.remove(key)
@@ -106,11 +106,7 @@ class BNReasoner:
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
             print(cpt)
 
-<<<<<<< Updated upstream
-=======
 
-
->>>>>>> Stashed changes
 
     
     def maxingOut(self, X):
@@ -170,6 +166,7 @@ class BNReasoner:
             tot += edges
     
         return tot/2
+    
     def draw_graph(self, graph):
         """Draw a graph with networkx"""
         nx.draw(graph, with_labels=True, node_size = 3000)
@@ -216,17 +213,16 @@ class BNReasoner:
                 cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
 
-                marg_factor = self.marginalization(cpt, node)
+                self.marginalization(cpt, node)
 
-                self.bn.update_cpt(child, marg_factor)
-
-        return
+                self.bn.update_cpt(child, cpt)
+                        
+        pass
     
-    def marginalDistribution(self, Q, e = None):
+    def marginalDistribution(self):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
-        
-        return
+        pass
     
     def MAP(self):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
@@ -248,5 +244,5 @@ if __name__ == '__main__':
     #BN.factorMultiplication(cptWet, cptRain)
 
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    print(BN.marginalDistribution(['light-on', 'bowel-problem'], e = {'dog-out':True}))
+    print(BN.marginalization('light-on', BN.bn.get_cpt('light-on')))
     exit()
