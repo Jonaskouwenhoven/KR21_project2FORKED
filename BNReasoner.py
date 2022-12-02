@@ -216,10 +216,11 @@ class BNReasoner:
 
         return
     
-    def marginalDistribution(self):
+    def marginalDistribution(self, Q, e = None):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
-        pass
+        
+        return
     
     def MAP(self):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
@@ -241,5 +242,5 @@ if __name__ == '__main__':
     #BN.factorMultiplication(cptWet, cptRain)
 
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    print(BN.variableElimination(['light-on', 'bowel-problem', 'hear-bark']))
+    print(BN.marginalDistribution(['light-on', 'bowel-problem'], e = {'dog-out':True}))
     exit()
