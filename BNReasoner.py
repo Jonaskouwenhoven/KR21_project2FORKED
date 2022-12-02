@@ -1,6 +1,8 @@
 from typing import Union
 from BayesNet import BayesNet
 import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -95,6 +97,7 @@ class BNReasoner:
     def marginalization(self, X):
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
+        #NOTE: Hier moet nog wat aan gedaan worden. Er staat given a "factor" and a varaible X, maar nu gebruik je die factor niet. je moet ook de andere cpt aanpassen
         cpt = self.bn.get_cpt(X)
         newCpt = cpt.loc[cpt[X] == False].reset_index(drop=True)
         new_p = [1.0 for i in range(len(newCpt))]
@@ -140,15 +143,77 @@ class BNReasoner:
         # Werkt wat moet ik ermee!?
 
         
+    def _min_degree(self, X, int_graph):
+        """Return the node with minimum degree in the graph"""
+        
+        int_sub_graph = [node for node in int_graph if node in X]
+        return min(int_sub_graph, key=lambda x: x[1])
     
-    def ordering(self):
+    def _fill(self, int_graph, node):
+        """Return the fill of a node in the graph"""
+        neighbors = int_graph.neighbors(node)
+        set_neighbors = set([el for el in neighbors])
+        
+        tot = 0
+
+        
+        for n1 in set_neighbors:  
+            n_copy = set_neighbors.copy()
+            shared_edges = (set(int_graph.neighbors(n1)) & n_copy)
+            edges = len(n_copy.difference(shared_edges)) - 1
+            tot += edges
+    
+        return tot/2
+    def draw_graph(self, graph):
+        """Draw a graph with networkx"""
+        nx.draw(graph, with_labels=True, node_size = 3000)
+        plt.show()
+
+    def _min_fill(self, X, int_graph):
+        """Return the node with minimum fill in the graph"""
+        fills = []
+
+        for n1 in X:
+            fills.append((n1, self._fill(int_graph, n1)))
+
+        return min(fills, key=lambda x: x[1])[0]
+
+    def ordering(self, X, method = 'min_degree'):
         #SICCO
         #TODO: Ordering: Given a set of variables X in the Bayesian network, compute a good ordering for the elimination of X based on the min-degree heuristics (2pts) and the min-fill heuristics (3.5pts). (Hint: you get the interaction graph ”for free” from the BayesNet class.)
-        pass
+        
+        int_graph = self.bn.get_interaction_graph()
+        order = []
+        order_func = self._min_degree if method == 'min_degree' else self._min_fill
+        
+        for i in range(len(X)):
+            node = order_func(X, int_graph)
+            order.append(node)
+            int_graph.remove_node(node)
+            X.remove(node)
+        return order
     
-    def variableElimination(self):
+    def variableElimination(self, X, order_method = 'min_degree'):
         #SICCO
         #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
+        
+        order = self.ordering(X, order_method)
+
+        for node in order:
+            children = self.bn.get_children(node)
+            prob = self.bn.get_cpt(node)
+            
+            for child in children:
+                cpt = self.bn.get_cpt(child)
+                
+                cpt.loc[cpt[node] == False,'p'] = cpt.loc[cpt[node] == False,'p'] * float(prob.loc[prob[node] == False,'p'])
+                cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
+                
+
+                self.marginalization(cpt, node)
+
+                self.bn.update_cpt(child, cpt)
+                        
         pass
     
     def marginalDistribution(self):
@@ -157,7 +222,6 @@ class BNReasoner:
         pass
     
     def MAP(self):
-        #SICCO
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
         pass
         
@@ -171,10 +235,11 @@ class BNReasoner:
 
 if __name__ == '__main__':
     
-    BN = BNReasoner('testing/lecture_example.BIFXML')
-    cptWet = BN.bn.get_cpt("Wet Grass?")
-    cptRain = BN.bn.get_cpt("Rain?")
-    BN.factorMultiplication(cptWet, cptRain)
-    # BN.bn.draw_structure()
+    BN = BNReasoner('testing/dog_problem.BIFXML')
+    # cptWet = BN.bn.get_cpt("Wet Grass?")
+    # cptRain = BN.bn.get_cpt("Rain?")
+    #BN.factorMultiplication(cptWet, cptRain)
+
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
+    print(BN.variableElimination(['light-on', 'bowel-problem', 'hear-bark']))
     exit()
