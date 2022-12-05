@@ -3,6 +3,8 @@ from BayesNet import BayesNet
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+from copy import deepcopy 
+
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -17,37 +19,7 @@ class BNReasoner:
         else:
             self.bn = net
             
-        # self.inDict = None
-        # self.outDict = None
 
-    # TODO: This is where your methods should go
-    
-    # def getding(self):
-    #     """Store the in and out degree of each node in the network"""
-
-    #     vars = BN.bn.get_all_variables()
-    #     inDict, outDict = {}, {}
-    #     for var in vars:
-    #         neighbors = list(BN.bn.structure.neighbors(var))
-
-    #         if len(list(neighbors)) < 1:
-    #             continue
-    #         else:
-    #             for n in list(neighbors):
-    #                 if n in inDict:
-    #                     inDict[n].append(var)
-    #                 else:
-    #                     inDict[n] = [var]
-                    
-    #                 if var in outDict:
-    #                     outDict[var].append(n)
-    #                 else:
-    #                     outDict[var] = [n]
-                        
-    #     self.inDioc = inDict
-    #     self.outDict = outDict
-
-    
     def netPrune(self,Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
         
@@ -74,15 +46,33 @@ class BNReasoner:
 
         
     def dSeperation(self, X, Y, Z):
-        #CAS
-        #TODO: d-Separation: Given three sets of variables X, Y, and Z, determine whether X is d-separated of Y given Z. (4pts)
+        Graph = self.bn.structure
+
+        
         if X == Y:
-            # In the situation that X is equal to Y, X is not d-separated from Y given Z
             return False
         
-        
-        pass
-    
+        for x in X:
+            for y in Y:
+                for path in nx.all_simple_paths(Graph, source=y, target=x):
+                    for element in path:
+                        if element == x or element == y:
+                            continue
+                        in_degree = Graph.in_degree(element)
+                        if in_degree == 1:
+                            if element in Z:
+                                return True
+                            
+                        if in_degree == 2: # This is a collider
+                            if element not in Z:
+                                return True
+                            
+                        out_degree = (Graph.out_degree(element))
+                        if out_degree == 2: # This is a fork
+                            if element in Z:
+                                return True
+        return False
+
     def independence(self):
         #CAS
         #TODO: Independence: Given three sets of variables X, Y, and Z, determine whether X is independent of Y given Z. (Hint: Remember the connection between d-separation and independence) (1.5pt)
@@ -323,8 +313,10 @@ class BNReasoner:
 
 if __name__ == '__main__':
     
-    BN = BNReasoner("/Users/jonas/Documents/GitHub/KR21_project2FORKED/KR21_forked/testing/Russia.BIFXML")
-    BN.bn.draw_structure()
+    BN = BNReasoner("/Users/jonas/Documents/GitHub/KR21_project2FORKED/KR21_forked/testing/asia.BIFXML")
 
+
+    assert BN.dSeperation(['either'],['asia'],['dysp','bronc','smoke']) == False
+    assert BN.dSeperation(['xray'],['smoke'],['lung']) == True
 
     exit()
