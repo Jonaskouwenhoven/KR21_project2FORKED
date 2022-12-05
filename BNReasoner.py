@@ -78,14 +78,32 @@ class BNReasoner:
 
         
     def dSeperation(self, X, Y, Z):
-        #CAS
-        #TODO: d-Separation: Given three sets of variables X, Y, and Z, determine whether X is d-separated of Y given Z. (4pts)
+        Graph = self.bn.structure
+
+        
         if X == Y:
-            # In the situation that X is equal to Y, X is not d-separated from Y given Z
             return False
         
-        
-        pass
+        for x in X:
+            for y in Y:
+                for path in nx.all_simple_paths(Graph, source=y, target=x):
+                    for element in path:
+                        if element == x or element == y:
+                            continue
+                        in_degree = Graph.in_degree(element)
+                        if in_degree == 1:
+                            if element in Z:
+                                return True
+                            
+                        if in_degree == 2: # This is a collider
+                            if element not in Z:
+                                return True
+                            
+                        out_degree = (Graph.out_degree(element))
+                        if out_degree == 2: # This is a fork
+                            if element in Z:
+                                return True
+        return False
     
     def independence(self):
         #CAS
