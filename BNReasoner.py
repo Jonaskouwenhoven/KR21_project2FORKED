@@ -86,7 +86,8 @@ class BNReasoner:
         
         for x in X:
             for y in Y:
-                for path in nx.all_simple_paths(Graph, source=y, target=x):
+                for path in nx.all_simple_paths(self.bn.get_interaction_graph(), source=y, target=x):
+                    print(path)
                     for element in path:
                         if element == x or element == y:
                             continue
