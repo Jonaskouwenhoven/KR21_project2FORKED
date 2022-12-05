@@ -192,6 +192,7 @@ class BNReasoner:
             node = order_func(X, int_graph)
             order.append(node)
             int_graph.remove_node(node)
+            
             X.remove(node)
         return order
     
@@ -199,28 +200,63 @@ class BNReasoner:
         #SICCO
         #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
         
-        order = self.ordering(X, order_method)
+        order = self.ordering(X, order_method) # get elimination order
 
-        for node in order:
-            children = self.bn.get_children(node)
+        for node in order:  # iterate over elimination order
             prob = self.bn.get_cpt(node)
             
+            if len(prob.columns) > 2:  # if node cannot be eliminated directly, perform variable elimination on node
+                self.variableElimination(list(prob.columns.drop([node, 'p'])), order_method)
+                prob = self.bn.get_cpt(node)
+            
+            children = self.bn.get_children(node) # get children of node, this is not iteratively udpated
+
             for child in children:
-                cpt = self.bn.get_cpt(child)
+                cpt = self.bn.get_cpt(child) 
                 
-                cpt.loc[cpt[node] == False,'p'] = cpt.loc[cpt[node] == False,'p'] * float(prob.loc[prob[node] == False,'p'])
-                cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
+                if node in cpt.columns: # if no elimination was performed in recursive step, elminate
+                    cpt.loc[cpt[node] == False,'p'] = cpt.loc[cpt[node] == False,'p'] * float(prob.loc[prob[node] == False,'p'])
+                    cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
+                    marg_factor = self.marginalization( node, cpt) # marginalize node
 
-                marg_factor = self.marginalization( node, cpt)
-
-                self.bn.update_cpt(child, marg_factor)
-
+                    self.bn.update_cpt(child, marg_factor)
+                else:
+                    continue
         return
     
     def marginalDistribution(self, Q, e = None, order_method = 'min_degree'):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
+        
+        # get all factors
+        factors = self.bn.get_all_cpts()
+        # reduce factors with regard to e
+        for node in self.bn.get_all_variables():
+
+            new_factor = self.bn.reduce_factor(pd.Series(e), factors[node])
+            self.bn.update_cpt(node, new_factor)
+        
+        # order
+        evidence_node =  list(e.keys()) 
+        Q_plus_e = Q + evidence_node
+
+        self.variableElimination(Q_plus_e, order_method)
+
+        # posterior
+        for node in Q:
+            joint_marginal = self.bn.get_cpt(node)
+            posterior = joint_marginal.copy()
+             
+            for e in evidence_node:
+                if e in posterior.columns:
+                    prior = self.bn.get_cpt(e)
+                    posterior['p'] = joint_marginal['p'] / float(prior.loc[prior[evidence_node[0]]==e[evidence_node[0]], 'p'])
+                    
+        return  
+    
+    def MAP(self, Q, e, order_method = 'min_degree'):
+        #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
         
         # get all factors
         factors = BN.bn.get_all_cpts()
@@ -235,18 +271,13 @@ class BNReasoner:
         Q_plus_e = Q + evidence_node
 
         self.variableElimination(Q_plus_e, order_method)
-
-        # posterior
+        
+        # joint marginal
+        
         joint_marginal = self.bn.get_cpt(Q[0])
-        prior = self.bn.get_cpt(evidence_node[0])
 
-        posterior = joint_marginal.copy()
-        posterior['p'] = joint_marginal['p'] / float(prior.loc[prior[evidence_node[0]]==e[evidence_node[0]], 'p'])
 
-        return
-    
-    def MAP(self):
-        #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
+        
         pass
         
     def MEP(self):
@@ -264,10 +295,11 @@ if __name__ == '__main__':
     # cptRain = BN.bn.get_cpt("Rain?")
     #BN.factorMultiplication(cptWet, cptRain)
 
-
     ### Test ordering, variable elimination and marginal distribution
-    test_val = test_BNR.test_marginalDistribution(BN)
-    if test_val:
+    test_val1 = test_BNR.test_marginalDistribution1(BN)
+    test_val2  = test_BNR.test_marginalDistribution2(BN)
+    
+    if test_val1 and test_val2:
         print("Test marginal distribution passed")
     else:
         print("Test marginal distribution failed")
