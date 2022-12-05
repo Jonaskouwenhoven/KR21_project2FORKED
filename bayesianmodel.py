@@ -323,17 +323,8 @@ class BNReasoner:
 
 if __name__ == '__main__':
     
-    BN = BNReasoner('/Users/jonas/Documents/GitHub/KR21_project2FORKED/KR21_forked/testing/lecture_example2.BIFXML')
+    BN = BNReasoner("/Users/jonas/Documents/GitHub/KR21_project2FORKED/KR21_forked/testing/Russia.BIFXML")
+    BN.bn.draw_structure()
 
-    # Define some query variables and evidence
-    Q = ["X", "Y", "Z"]
-    e = {"O": True}
-
-    # Compute the most probable explanation using the MEP method
-    explanation, value = BN.MAP(Q, e)
-    print("Most probable explanation: {} with probability {}".format(explanation, value))
-    # Check if the result is as expected
-    assert explanation == ["X", "Y", "Z"]
-    assert value == 0.98
 
     exit()

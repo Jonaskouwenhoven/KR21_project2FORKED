@@ -36,7 +36,7 @@
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>RussiaResponseToUkraineWarEvents</NAME>
+        <NAME>RussiaResponseToWar</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
@@ -76,30 +76,62 @@
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <!-- PCTs -->
-    <DEFINITION>
-        <FOR>I</FOR>
+    <DEFINITION> <!--UkraineWarEvents-->
+        <FOR>UkraineWarEvents</FOR>
+        <TABLE>0.5 0.5</TABLE>
+    </DEFINITION>
+    <DEFINITION> <!--PoliticalDevelopmentsInUkraine-->
+        <FOR>PoliticalDevelopmentsInUkraine</FOR>
+        <TABLE>0.5 0.5</TABLE>
+    </DEFINITION>
+    <DEFINITION> <!--RussiaResponseToWar-->
+        <FOR>RussiaResponseToWar</FOR>
         <TABLE>0.5 0.5</TABLE>
     </DEFINITION>
     <DEFINITION>
-        <FOR>J</FOR>
-        <TABLE>0.5 0.5</TABLE>
+        <FOR>MilitaryActionByUkraine</FOR>
+        <GIVEN>UkraineWarEvents</GIVEN>
+        <GIVEN>PoliticalDevelopmentsInUkraine</GIVEN>
+        <TABLE>0.1 0.9 0.8 0.2 0.8 0.2 0.1 0.9</TABLE>
     </DEFINITION>
     <DEFINITION>
-        <FOR>Y</FOR>
-        <GIVEN>J</GIVEN>
-        <TABLE>0.01 0.99 0.99 0.01</TABLE>
+        <FOR>MilitaryActionByRussia</FOR>
+        <GIVEN>UkraineWarEvents</GIVEN>
+        <GIVEN>RussiaResponseToWar</GIVEN>
+        <TABLE>0.2 0.8 0.4 0.6 0.3 0.7 0.6 0.4</TABLE>
     </DEFINITION>
     <DEFINITION>
-        <FOR>X</FOR>
-        <GIVEN>I</GIVEN>
-        <GIVEN>J</GIVEN>
-        <TABLE>0.95 0.05 0.95 0.05 0.95 0.05 0.05 0.95</TABLE> <!-- Order: Rain?, Sprinkler?, Wet Grass?-->
+        <FOR>DomesticSupportForRussiaActions</FOR>
+        <GIVEN>UkraineWarEvents</GIVEN>
+        <GIVEN>RussiaResponseToWar</GIVEN>
+        <GIVEN>MilitaryActionByUkraine</GIVEN>
+         <TABLE>0.1 0.9 0.2 0.8 0.6 0.4 0.4 0.6 0.3 0.7 0.8 0.2 0.7 0.3 0.9 0.1</TABLE>
     </DEFINITION>
     <DEFINITION>
-        <FOR>O</FOR>
-        <GIVEN>X</GIVEN>
-        <GIVEN>Y</GIVEN>
-        <TABLE>0.98 0.02 0.02 0.98 0.02 0.98 0.02 0.98</TABLE>
+        <FOR>InternationalSupportForUkraine</FOR>
+        <GIVEN>UkraineWarEvents</GIVEN>
+        <GIVEN>RussiaResponseToWar</GIVEN>
+        <!-- <TABLE>TODO give Values</TABLE> -->
+        <TABLE>0.1 0.9 0.2 0.8 0.6 0.4 0.7 0.3</TABLE>
+    </DEFINITION>
+    <DEFINITION>
+        <FOR>EconomicSanctionsAgainstRussia</FOR>
+        <GIVEN>UkraineWarEvents</GIVEN>
+        <GIVEN>InternationalSupportForUkraine</GIVEN>
+        <TABLE>0.1 0.9 0.5 0.5 0.8 0.2 0.6 0.4</TABLE>
+    </DEFINITION>
+    <DEFINITION>
+        <FOR>RussianEconomy</FOR>
+        <GIVEN>MilitaryActionByRussia</GIVEN>
+        <GIVEN>EconomicSanctionsAgainstRussia</GIVEN>
+    <TABLE>0.1 0.9 0.5 0.5 0.8 0.2 0.6 0.4</TABLE>
+    </DEFINITION>
+    <DEFINITION>
+        <FOR>RussiaStartingANuclearWar</FOR>
+        <GIVEN>MilitaryActionByUkraine</GIVEN>
+        <GIVEN>DomesticSupportForRussiaActions</GIVEN>
+        <GIVEN>RussianEconomy</GIVEN>
+         <TABLE>0.1 0.9 0.2 0.8 0.6 0.4 0.4 0.6 0.3 0.7 0.8 0.2 0.7 0.3 0.9 0.1</TABLE>
     </DEFINITION>
 </NETWORK>
 </BIF>
