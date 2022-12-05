@@ -106,7 +106,8 @@ class BNReasoner:
         else:
             new_columns = [c for c in (cpt.columns) if c not in [X, 'p']]
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
-            return cpt
+            print(cpt)
+
 
     
     def maxingOut(self, X):
