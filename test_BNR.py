@@ -54,13 +54,12 @@ def test_marginalDistribution2(BN):
         BN_test = BNReasoner('testing/lecture_example.BIFXML')
         Q = list(split[0])
         e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
-        print("Test:" ,Q, e)
-        BN_test.marginalDistribution(Q, e)
-        # try:
-        #     BN_test.marginalDistribution(Q, e)
-        # except:
-        #     print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
-        #     return False
+    
+        try:
+            BN_test.marginalDistribution(Q, e)
+        except:
+            print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
+            return False
 
     return True
      

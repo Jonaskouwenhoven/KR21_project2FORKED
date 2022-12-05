@@ -106,7 +106,7 @@ class BNReasoner:
         else:
             new_columns = [c for c in (cpt.columns) if c not in [X, 'p']]
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
-            print(cpt)
+            return cpt
 
 
     
@@ -125,8 +125,7 @@ class BNReasoner:
                 
         maxedout = (pd.DataFrame(dfList))
         
-        print(maxedout,"\n\n", cpt)
-        ## Werkt, wat nu?
+        return maxedout
     
     def factorMultiplication(self, f, g):
         #JONAS
@@ -205,7 +204,6 @@ class BNReasoner:
 
         for node in order:  # iterate over elimination order
             prob = self.bn.get_cpt(node)
-            
             if len(prob.columns) > 2:  # if node cannot be eliminated directly, perform variable elimination on node
                 self.variableElimination(list(prob.columns.drop([node, 'p'])), order_method)
                 prob = self.bn.get_cpt(node)
@@ -214,8 +212,9 @@ class BNReasoner:
 
             for child in children:
                 cpt = self.bn.get_cpt(child) 
-                
+         
                 if node in cpt.columns: # if no elimination was performed in recursive step, elminate
+
                     cpt.loc[cpt[node] == False,'p'] = cpt.loc[cpt[node] == False,'p'] * float(prob.loc[prob[node] == False,'p'])
                     cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
@@ -277,6 +276,7 @@ class BNReasoner:
         
         joint_marginal = self.bn.get_cpt(Q[0])
 
+        MAP = self.maxingOut()
 
         
         pass
