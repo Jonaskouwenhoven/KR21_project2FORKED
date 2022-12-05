@@ -50,7 +50,7 @@ class BNReasoner:
     
     def netPrune(self,Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
-        #TODO: NOg naar kijken wordt gezegd given query variables Q, die gebruiken we niet
+        
         variables = self.bn.get_all_variables()
         for key in evidence.keys():
             variables.remove(key)
@@ -63,15 +63,12 @@ class BNReasoner:
                     continue
                 instantation = pd.Series({key:value})
                 cit = self.bn.get_compatible_instantiations_table(instantation, cpt)
-                # crt = self.bn.reduce_factor(instantation, cpt)
                 self.bn.update_cpt(key, cit)
-                print(cpt)
-                print(cit)
             self.bn.del_var(key)
             
             
 
-        self.bn.draw_structure()
+        # self.bn.draw_structure()
                 # print(crt)
         pass
 
@@ -98,15 +95,14 @@ class BNReasoner:
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
         #NOTE: Hier moet nog wat aan gedaan worden. Er staat given a "factor" and a varaible X, maar nu gebruik je die factor niet. je moet ook de andere cpt aanpassen
-        cpt = self.bn.get_cpt(X)
+        #cpt = self.bn.get_cpt(X)
+       
         if X not in cpt.columns:
             return cpt
         else:
             new_columns = [c for c in (cpt.columns) if c not in [X, 'p']]
             cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
-            print(cpt)
-
-
+            return cpt
 
     
     def maxingOut(self, X):
@@ -147,9 +143,9 @@ class BNReasoner:
         
     def _min_degree(self, X, int_graph):
         """Return the node with minimum degree in the graph"""
-        
-        int_sub_graph = [node for node in int_graph if node in X]
-        return min(int_sub_graph, key=lambda x: x[1])
+       
+        int_sub_graph = [node for node in int_graph.degree if node[0] in X]
+        return min(int_sub_graph, key=lambda x: x[1])[0]
     
     def _fill(self, int_graph, node):
         """Return the fill of a node in the graph"""
@@ -166,7 +162,6 @@ class BNReasoner:
             tot += edges
     
         return tot/2
-    
     def draw_graph(self, graph):
         """Draw a graph with networkx"""
         nx.draw(graph, with_labels=True, node_size = 3000)
@@ -213,36 +208,132 @@ class BNReasoner:
                 cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
                 
 
-                self.marginalization(cpt, node)
+                marg_factor = self.marginalization( node, cpt)
 
-                self.bn.update_cpt(child, cpt)
-                        
-        pass
+                self.bn.update_cpt(child, marg_factor)
+
+        return
     
-    def marginalDistribution(self):
+    def marginalDistribution(self, Q, e = None, order_method = 'min_degree'):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
-        pass
+        
+        # get all factors
+        factors = BN.bn.get_all_cpts()
+ 
+        # reduce factors with regard to e
+        for node in BN.bn.get_all_variables():
+            new_factor = BN.bn.reduce_factor(pd.Series(e), factors[node])
+            BN.bn.update_cpt(node, new_factor)
+        
+        # order
+        evidence_node =  list(e.keys()) 
+        Q_plus_e = Q + evidence_node
+
+        self.variableElimination(Q_plus_e, order_method)
+
+        # posterior
+        joint_marginal = self.bn.get_cpt(Q[0])
+        prior = self.bn.get_cpt(evidence_node[0])
+
+        posterior = joint_marginal.copy()
+        posterior['p'] = joint_marginal['p'] / float(prior.loc[prior[evidence_node[0]]==e[evidence_node[0]], 'p'])
+
+        return posterior
     
-    def MAP(self):
+    
+    
+    def MAP(self, Q, e):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
-        pass
+        # Each dataframe has columns for each variable and a 'p' column for the probabilities
+        self.netPrune(Q, e)
+        variables = self.bn.get_all_variables()
+        cpts = [self.bn.get_cpt(var) for var in variables]
+        # Define the initial probability for each query variable as 1
+        probs = {var: 1 for var in Q}
+
+        # Iterate through the CPTS and update the probabilities for each query variable
+        # based on the evidence and the probabilities in the CPT
+        for cpt in cpts:
+            # Filter the CPT based on the evidence
+
+            if not set(e.keys()).intersection(set(cpt.columns)):
+                continue
+
+            # Filter the CPT based on the evidence
+            isin = cpt.columns.isin(list(e.keys()))
+            cpt = cpt.loc[:, isin]
+
+            # Update the probabilities for each query variable
+            for var in Q:
+                if var not in cpt.columns:
+                    continue
+                probs[var] = probs[var] * cpt[cpt[var] == True]['p'].prod()
+
+        # The maximum a-posteriori query is the variable with the highest probability
+        instantiation = max(probs, key=probs.get)
+
+        # The probability of the MAP query is the highest probability
+        value = probs[instantiation]
+        # Return the results
+        return (instantiation, value)
         
-    def MEP(self):
+    def MEP(self, Q, e):
         #TODO: Compute the most probable explanation given an evidence e. (1.5pts)
-        pass
+        # Each dataframe has columns for each variable and a 'p' column for the probabilities
+        # self.netPrune(Q, e)
+        variables =self.bn.get_all_variables()
+        cpts = [self.bn.get_cpt(var) for var in variables]
         
+        # Define the initial probability for each possible combination of query variables as 1
+        probs = {var: 1 for var in Q}
+
+        # Iterate through the CPTS and update the probabilities for each possible combination of query variables
+        # based on the evidence and the probabilities in the CPT
+        for cpt in cpts:
+            # Check if any of the evidence variables are in the CPT
+            if not set(e.keys()).intersection(set(cpt.columns)):
+                continue
+
+            # Filter the CPT based on the evidence
+            isin = cpt.columns.isin(list(e.keys()))
+            cpt = cpt.loc[:, isin]
+
+            # Update the probabilities for each possible combination of query variables
+            for var in Q:
+                # Get the name of the variable in the bayesian network
+                # that corresponds to the query variable
+                if var not in cpt.columns:
+                    continue
+
+                # Update the probabilities using the name of the variable in the bayesian network
+                probs[var] = probs[var] * cpt[cpt[var] == True]['p'].prod()
+
+        # The most probable explanation is the combination of query variables with the highest probability
+        explanation = max(probs, key=probs.get)
+
+        # The probability of the MEP is the highest probability
+        value = probs[explanation]
+        # Return the results
+        return (explanation, value)
+
         
 
 
 
 if __name__ == '__main__':
     
-    BN = BNReasoner('testing/dog_problem.BIFXML')
-    # cptWet = BN.bn.get_cpt("Wet Grass?")
-    # cptRain = BN.bn.get_cpt("Rain?")
-    #BN.factorMultiplication(cptWet, cptRain)
+    BN = BNReasoner('/Users/jonas/Documents/GitHub/KR21_project2FORKED/KR21_forked/testing/lecture_example2.BIFXML')
 
-    # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    print(BN.marginalization('light-on', BN.bn.get_cpt('light-on')))
+    # Define some query variables and evidence
+    Q = ["X", "Y", "Z"]
+    e = {"O": True}
+
+    # Compute the most probable explanation using the MEP method
+    explanation, value = BN.MAP(Q, e)
+    print("Most probable explanation: {} with probability {}".format(explanation, value))
+    # Check if the result is as expected
+    assert explanation == ["X", "Y", "Z"]
+    assert value == 0.98
+
     exit()
