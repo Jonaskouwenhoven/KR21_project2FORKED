@@ -243,25 +243,26 @@ class BNReasoner:
                     continue
         return
     
-    def marginalDistribution(self, Q, e = None, order_method = 'min_degree'):
+    def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
-        
         # get all factors
         factors = self.bn.get_all_cpts()
         # reduce factors with regard to e
-        for node in self.bn.get_all_variables():
-
-            new_factor = self.bn.reduce_factor(pd.Series(e), factors[node])
-            self.bn.update_cpt(node, new_factor)
-        
+        if len(e) != 0:
+            for node in self.bn.get_all_variables():
+                new_factor = self.bn.reduce_factor(pd.Series(e), factors[node])
+                self.bn.update_cpt(node, new_factor)
+            
         # order
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node
+    
 
         self.variableElimination(Q_plus_e, order_method)
 
         # posterior
+        posterior_probs = {}
         for node in Q:
             joint_marginal = self.bn.get_cpt(node)
             posterior = joint_marginal.copy()
@@ -270,8 +271,8 @@ class BNReasoner:
                 if e in posterior.columns:
                     prior = self.bn.get_cpt(e)
                     posterior['p'] = joint_marginal['p'] / float(prior.loc[prior[evidence_node[0]]==e[evidence_node[0]], 'p'])
-                    
-        return  
+            posterior_probs[node] = posterior
+        return posterior_probs  
     
     def MAP(self, Q, e, order_method = 'min_degree'):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
@@ -317,8 +318,9 @@ if __name__ == '__main__':
     ### Test ordering, variable elimination and marginal distribution
     test_val1 = test_BNR.test_marginalDistribution1(BN)
     test_val2  = test_BNR.test_marginalDistribution2(BN)
+    test_val3 = test_BNR.test_marginalDistribution3(BN)
     
-    if test_val1 and test_val2:
+    if test_val1 and test_val2 and test_val3:
         print("Test marginal distribution passed")
     else:
         print("Test marginal distribution failed")
