@@ -62,6 +62,32 @@ def test_marginalDistribution2(BN):
             return False
 
     return True
+
+def test_marginalDistribution3(BN):
+    ### Test marginalDistribution
+    # Test for prior distribution
+    variable_set = BN.bn.get_all_variables()
+    
+    perms = []
+    for i in range(1,len(variable_set)):
+        comb = itertools.combinations(variable_set, i)
+       
+        perms.append([list(c) for c in comb])
+    
+
+    # Test conditionalDistribution for all splits
+    for perm in perms:
+        for Q in perm:
+            BN_test = copy.deepcopy(BN)
+            print(Q)
+            BN_test.marginalDistribution(Q)
+            # try:
+            #     BN_test.marginalDistribution(Q)
+            # except:
+            #     print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, None))
+            #     return False
+
+    return True
      
 
 
