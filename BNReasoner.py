@@ -3,6 +3,7 @@ from BayesNet import BayesNet
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import test_BNR
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -264,7 +265,20 @@ if __name__ == '__main__':
     # cptRain = BN.bn.get_cpt("Rain?")
     #BN.factorMultiplication(cptWet, cptRain)
 
+
+    ### Test ordering, variable elimination and marginal distribution
+    test_val = test_BNR.test_marginalDistribution(BN)
+    if test_val:
+        print("Test marginal distribution passed")
+    else:
+        print("Test marginal distribution failed")
+        exit()
+
     # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    print(BN.marginalDistribution(['Rain?'], {'Winter?':True}))
+    # Q = ['Rain?']
+    # e = {'Winter?':True}
+    # BN.marginalDistribution(Q, {'Winter?':True})
+
+    # print(BN.bn.get_cpt(Q[0]))
    
     exit()
