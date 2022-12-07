@@ -3,8 +3,9 @@ from BayesNet import BayesNet
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
-import test_BNR
+# import test_BNR
 import numpy as np
+import pgmpy
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -96,15 +97,19 @@ class BNReasoner:
     def dSeperation(self, X, Y, Z):
         Graph = self.bn.structure
 
-        
         if X == Y:
             return False
         
+        
         for x in X:
             for y in Y:
-                for path in nx.all_simple_paths(self.bn.get_interaction_graph(), source=y, target=x):
+
+                if len(list(nx.all_simple_paths(Graph, source=x, target=y))) == 0:
+                    return True
+                for path in nx.all_simple_paths(Graph, source=x, target=y):
                     print(path)
                     for element in path:
+                        print(element, Graph.out_degree(element))
                         if element == x or element == y:
                             continue
                         in_degree = Graph.in_degree(element)
@@ -133,9 +138,9 @@ class BNReasoner:
     def marginalization(self, X, f):
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
-        
-        if X not in f.columns:
+        if X not in list(f.columns):
             return f
+        
         else:
             new_f = f
         
@@ -261,6 +266,46 @@ class BNReasoner:
         
         return factors
 
+    def variableElimination2(self, Q, X, order_method = 'min_degree'):
+        var = self.bn.get_all_variables()
+
+        elimination_variables =  (
+            set(var)
+            - set(Q)
+        )
+        elimination_variables = self.ordering(elimination_variables, order_method)
+        cpts = self.bn.get_all_cpts()
+        fac = 0
+
+        for var in elimination_variables:
+            temp = {}
+            for cpt in cpts:
+                if var in cpts[cpt]:
+                    temp[cpt] = cpts[cpt]
+                    
+            if len(temp) > 1:
+
+                mat_cpt = self.factorMultiplication(temp[list(temp.keys())[0]], temp[list(temp.keys())[1]])
+                ding = (mat_cpt)
+
+                updated = self.marginalization([var], ding)
+                for factor in temp:
+                    cpts.pop(factor)
+                
+                fac += 1
+                cpts["factor" + str(fac)] = updated
+            elif len(temp) == 1:
+                ding = (temp[list(temp.keys())[0]])
+                updated = self.marginalization([var], ding)
+                for factor in temp:
+                    cpts.pop(factor)
+                    
+                fac += 1
+                cpts['factor' + str(fac)] = updated
+
+        return cpts
+
+
     def variableElimination(self, Q, X, order_method = 'min_degree'):
         #SICCO
         #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
@@ -329,8 +374,10 @@ class BNReasoner:
         # pruning
         self.netPrune(Q, e)
         variables = self.bn.get_all_variables()
-        print(variables)
-        # order
+        ev_fac = 1
+        for ev in e:
+            ev_fac *= self.bn.get_cpt(ev)['p'].sum()
+            
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node 
         elimination_variables =  (
@@ -347,7 +394,9 @@ class BNReasoner:
         else:
             helper = joint
             for q in Q:
-                helper = self.marginalization(q, helper)
+                print(type(helper), helper)
+                exit()
+                helper = self.marginalization(q, pd.DataFrame(helper))
             pr_e = helper
             
             posterior = joint
