@@ -2,10 +2,14 @@ from typing import Union
 from BayesNet import BayesNet
 import pandas as pd
 import networkx as nx
+from pgmpy.readwrite import XMLBIFReader
+
 import matplotlib.pyplot as plt
 import test_BNR
 import numpy as np
 import pgmpy
+from VariableEliminate import VariableElimination
+
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -20,9 +24,36 @@ class BNReasoner:
         else:
             self.bn = net
             
+        # self.inDict = None
+        # self.outDict = None
 
     # TODO: This is where your methods should go
     
+    # def getding(self):
+    #     """Store the in and out degree of each node in the network"""
+
+    #     vars = BN.bn.get_all_variables()
+    #     inDict, outDict = {}, {}
+    #     for var in vars:
+    #         neighbors = list(BN.bn.structure.neighbors(var))
+
+    #         if len(list(neighbors)) < 1:
+    #             continue
+    #         else:
+    #             for n in list(neighbors):
+    #                 if n in inDict:
+    #                     inDict[n].append(var)
+    #                 else:
+    #                     inDict[n] = [var]
+                    
+    #                 if var in outDict:
+    #                     outDict[var].append(n)
+    #                 else:
+    #                     outDict[var] = [n]
+                        
+    #     self.inDioc = inDict
+    #     self.outDict = outDict
+
     
     def netPrune(self, Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
@@ -64,7 +95,7 @@ class BNReasoner:
                 if delete:
                     self.bn.del_var(variable)
             
-        return self.bn
+        return 
 
         
     def dSeperation(self, X, Y, Z):
@@ -143,6 +174,7 @@ class BNReasoner:
         maxedout = (pd.DataFrame(dfList))
         
         return maxedout
+
     
     def factorMultiplication(self, f, g):
         #JONAS
@@ -240,13 +272,10 @@ class BNReasoner:
         
         return factors
 
-    def variableElimination2(self, Q, X, order_method = 'min_degree'):
+    def variableElimination(self, Q, elimination_variables, order_method = 'min_degree'):
         var = self.bn.get_all_variables()
 
-        elimination_variables =  (
-            set(var)
-            - set(Q)
-        )
+
         elimination_variables = self.ordering(elimination_variables, order_method)
         cpts = self.bn.get_all_cpts()
         fac = 0
@@ -268,6 +297,7 @@ class BNReasoner:
                 
                 fac += 1
                 cpts["factor" + str(fac)] = updated
+                
             elif len(temp) == 1:
                 ding = (temp[list(temp.keys())[0]])
                 updated = self.marginalization(var, ding)
@@ -279,107 +309,38 @@ class BNReasoner:
 
         return cpts
 
-
-    def variableElimination(self, Q, X, order_method = 'min_degree'):
-        #SICCO
-        #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
-        # Deze functie klopt nog niet helemaal...
-
-        elimination_order = self.ordering(X, order_method) if len(X) != 0 else [] # get elimination order
-   
-        # get factors
-        variables = Q + list(X)
-
-        work_factors = self._get_all_factors(variables)
-     
-        eliminated_variables = set()
-        
-        for node in elimination_order:  # iterate over elimination order
-            factors = []
-            for factor, org in work_factors[node]:
-                if not set(variables).intersection(eliminated_variables):
-                    factors.append(factor)
-
-           
-            num_factors = len(factors)
-            
-            factor_product = factors[0]
-            for i in range(1,num_factors):
-                factor = factors[i]
-                factor_product = self.factorMultiplication(factor_product, factor)
-            marg_factor = self.marginalization(node, factor_product)
-            
-
-            for var in marg_factor.columns:
-                if var != 'p':
-                    entries = [org for factor, org in work_factors[var]]
-                    if node in entries:
-                        index = entries.index(node)
-                
-                        work_factors[var][index] = (marg_factor, node)
-
-            del work_factors[node]
-
-     
-        final_distribution = []
-        column_sets = set()
-        for node in work_factors:
-            for factor, org in work_factors[node]:
-                if not set(factor.columns[:-1]).intersection(eliminated_variables) and tuple(factor.columns[:-1]) not in column_sets:
-                    if all(col in Q for col in factor.columns[:-1]):
-                        column_sets.add(tuple(factor.columns[:-1]))
-                        final_distribution.append((factor))
-        final_distribution = [factor for factor in final_distribution]
-        
-        print(final_distribution)
-
-        factor_product = final_distribution[0]
-        for i in range(1,len(final_distribution)):
-            
-            factor_product = self.factorMultiplication(factor_product, final_distribution[i])
-           
- 
-        return factor_product
     
-    def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
-        #SICCO
-        #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
+    def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):        
         
-        # pruning
         self.netPrune(Q, e)
-        variables = self.bn.get_all_variables()
-        ev_fac = 1
-        for ev in e:
-            ev_fac *= self.bn.get_cpt(ev)['p'].sum()
-            
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node 
         elimination_variables =  (
-            set(variables)
+            set(self.bn.get_all_variables())
             - set(Q_plus_e)
         )
 
+        eliminationOrder = self.ordering(elimination_variables, order_method)
+        totalCpts= []
+        for elim in eliminationOrder:
+            for node in self.bn.get_all_variables():
+                if elim  == node or node not in Q_plus_e:
+                    continue
+                
+                elimCpt = self.bn.get_cpt(elim)
+                nodeCpt = self.bn.get_cpt(node)
+                
+                if elim in nodeCpt.columns.to_list()[:-1]:
+                    finalCpt = self.factorMultiplication(elimCpt, nodeCpt)
+                    resultCpt = self.marginalization(elim, finalCpt)
+                    totalCpts.append(resultCpt)
+                    # self.bn.update_cpt(node, resultCpt)
+        for cpt in self.bn.get_all_cpts():
+            print(self.bn.get_all_cpts()[cpt])  #### HIER KOMEN VM DE GOEIE WAARDES UIT!!!!!
+        return 
 
-        joint = self.variableElimination(Q_plus_e, elimination_variables, order_method) # hier gaat vgm nog wat mis
-
-
-        if len(e) == 0:
-            return joint
-        else:
-            helper = joint
-            for q in Q:
-                print(type(helper), helper)
-                exit()
-                helper = self.marginalization(q, pd.DataFrame(helper))
-            pr_e = helper
-            
-            posterior = joint
-   
-            posterior['p'] = joint['p'] / float(pr_e['p'])
-            return posterior
-
-        return
-
+        
+        
     def MAP(self, Q, e, order_method = 'min_degree'):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
         
@@ -415,28 +376,11 @@ class BNReasoner:
 
 
 if __name__ == '__main__':
-    
+    reader = XMLBIFReader("testing/lecture_example.BIFXML")
+    model = reader.get_model()
     BN = BNReasoner('testing/lecture_example.BIFXML')
-    # cptWet = BN.bn.get_cpt("Wet Grass?")
-    # cptRain = BN.bn.get_cpt("Rain?")
-    #BN.factorMultiplication(cptWet, cptRain)
+    margDist2 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
 
-    ### Test ordering, variable elimination and marginal distribution
-    test_val1 = True#test_BNR.test_marginalDistribution1(BN)
-    test_val2  = test_BNR.test_marginalDistribution2(BN) 
-    test_val3 = True #test_BNR.test_marginalDistribution3(BN)
-    
-    if test_val1 and test_val2 and test_val3:
-        print("Test marginal distribution passed")
-    else:
-        print("Test marginal distribution failed")
-        exit()
-
-    # BN.netPrune(['Wet Grass?'], {'Winter?':True, "Rain?":False})
-    # Q = ['Rain?']
-    # e = {'Winter?':True}
-    # BN.marginalDistribution(Q, {'Winter?':True})
-
-    # print(BN.bn.get_cpt(Q[0]))
-   
+    margDist = BN.marginalDistribution(['Winter?', 'Rain?', "Wet Grass?"], e={'Slippery Road?': 'False'})
+    print(margDist)
     exit()
