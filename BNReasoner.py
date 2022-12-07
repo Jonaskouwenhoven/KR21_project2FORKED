@@ -104,12 +104,13 @@ class BNReasoner:
         for x in X:
             for y in Y:
 
-                if len(list(nx.all_simple_paths(Graph, source=x, target=y))) == 0:
+                if nx.is_simple_path(Graph, [y, x]) == False and nx.is_simple_path(Graph, [x, y]) == False:
+
                     return True
                 for path in nx.all_simple_paths(Graph, source=x, target=y):
-                    print(path)
+
                     for element in path:
-                        print(element, Graph.out_degree(element))
+
                         if element == x or element == y:
                             continue
                         in_degree = Graph.in_degree(element)

@@ -119,10 +119,11 @@ def test_marginalDistribution3(BN):
 def test_dsep(BN):
     reader = XMLBIFReader("testing/lecture_example.BIFXML")
     model = reader.get_model()
-    # assert BN.dSeperation(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Rain?'},{'Winter?'}, {'Slippery Road?'}))
-    # assert BN.dSeperation(['Slippery Road?'], ['Rain?'], ['Winter?']) == (nx.d_separated(BN.bn.structure, {'Rain?'},{'Slippery Road?'}, {'Winter?'}))
-    print(BN.dSeperation(['Sprinkler?'], ['Slippery Road?'], ['Winter?']) , (nx.d_separated(BN.bn.structure, {'Sprinkler?'},{'Slippery Road?'}, {'Winter?'})))
+    assert (BN.dSeperation(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Winter?'},{'Rain?'}, {'Slippery Road?'})))
+    assert (BN.dSeperation(['Slippery Road?'], ['Rain?'], ['Winter?'])  ==  (nx.d_separated(BN.bn.structure, {'Rain?'},{'Slippery Road?'}, {'Winter?'})))
+    assert (BN.dSeperation(['Sprinkler?'], ['Slippery Road?'], ['Winter?']) ==  (nx.d_separated(BN.bn.structure, {'Sprinkler?'},{'Slippery Road?'}, {'Winter?'})))
+
 if __name__ == "__main__":
     BN = BNReasoner('testing/lecture_example.BIFXML')
-    # BN.bn.draw_structure()
+    BN.bn.draw_structure()
     test_dsep(BN)
