@@ -5,6 +5,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import test_BNR
 import numpy as np
+import pgmpy
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -53,7 +54,7 @@ class BNReasoner:
     def netPrune(self, Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
         evidence_nodes = list(evidence.keys())
-
+        # print(evidence, "THISSSS")
         Q_plus_e = Q + evidence_nodes
         
         variables = self.bn.get_all_variables()
@@ -90,21 +91,26 @@ class BNReasoner:
                 if delete:
                     self.bn.del_var(variable)
             
-        return
+        return self.bn
 
         
     def dSeperation(self, X, Y, Z):
         Graph = self.bn.structure
 
-        
         if X == Y:
             return False
         
+        
         for x in X:
             for y in Y:
-                for path in nx.all_simple_paths(self.bn.get_interaction_graph(), source=y, target=x):
-                    print(path)
+
+                if nx.is_simple_path(Graph, [y, x]) == False and nx.is_simple_path(Graph, [x, y]) == False:
+
+                    return True
+                for path in nx.all_simple_paths(Graph, source=x, target=y):
+
                     for element in path:
+
                         if element == x or element == y:
                             continue
                         in_degree = Graph.in_degree(element)
@@ -122,10 +128,10 @@ class BNReasoner:
                                 return True
         return False
     
-    def independence(self):
+    def independence(self, X, Y, Z):
         #CAS
         #TODO: Independence: Given three sets of variables X, Y, and Z, determine whether X is independent of Y given Z. (Hint: Remember the connection between d-separation and independence) (1.5pt)
-        if self.dSeperation():
+        if self.dSeperation(X, Y, Z):
             return True
         
         return False
@@ -133,9 +139,9 @@ class BNReasoner:
     def marginalization(self, X, f):
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
-        
-        if X not in f.columns:
+        if X not in list(f.columns):
             return f
+        
         else:
             new_f = f
         
@@ -261,6 +267,46 @@ class BNReasoner:
         
         return factors
 
+    def variableElimination2(self, Q, X, order_method = 'min_degree'):
+        var = self.bn.get_all_variables()
+
+        elimination_variables =  (
+            set(var)
+            - set(Q)
+        )
+        elimination_variables = self.ordering(elimination_variables, order_method)
+        cpts = self.bn.get_all_cpts()
+        fac = 0
+
+        for var in elimination_variables:
+            temp = {}
+            for cpt in cpts:
+                if var in cpts[cpt]:
+                    temp[cpt] = cpts[cpt]
+                    
+            if len(temp) > 1:
+
+                mat_cpt = self.factorMultiplication(temp[list(temp.keys())[0]], temp[list(temp.keys())[1]])
+                ding = (mat_cpt)
+
+                updated = self.marginalization(var, ding)
+                for factor in temp:
+                    cpts.pop(factor)
+                
+                fac += 1
+                cpts["factor" + str(fac)] = updated
+            elif len(temp) == 1:
+                ding = (temp[list(temp.keys())[0]])
+                updated = self.marginalization(var, ding)
+                for factor in temp:
+                    cpts.pop(factor)
+                    
+                fac += 1
+                cpts['factor' + str(fac)] = updated
+
+        return cpts
+
+
     def variableElimination(self, Q, X, order_method = 'min_degree'):
         #SICCO
         #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
@@ -331,8 +377,10 @@ class BNReasoner:
         # pruning
         self.netPrune(Q, e)
         variables = self.bn.get_all_variables()
-        print(variables)
-        # order
+        ev_fac = 1
+        for ev in e:
+            ev_fac *= self.bn.get_cpt(ev)['p'].sum()
+            
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node 
         elimination_variables =  (
@@ -349,7 +397,9 @@ class BNReasoner:
         else:
             helper = joint
             for q in Q:
-                helper = self.marginalization(q, helper)
+                print(type(helper), helper)
+                exit()
+                helper = self.marginalization(q, pd.DataFrame(helper))
             pr_e = helper
             
             posterior = joint
