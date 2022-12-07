@@ -54,7 +54,8 @@ class BNReasoner:
         
         for x in X:
             for y in Y:
-                for path in nx.all_simple_paths(Graph, source=y, target=x):
+                for path in nx.all_simple_paths(self.bn.get_interaction_graph(), source=y, target=x):
+                    print(path)
                     for element in path:
                         if element == x or element == y:
                             continue
@@ -314,9 +315,11 @@ class BNReasoner:
 if __name__ == '__main__':
     
     BN = BNReasoner("/Users/jonas/Documents/GitHub/KR21_project2FORKED/KR21_forked/testing/asia.BIFXML")
+    BN.bn.draw_structure()
+    assert BN.dSeperation(['bronc'],['lung'],['smoke']) == True
 
-
-    assert BN.dSeperation(['either'],['asia'],['dysp','bronc','smoke']) == False
+    assert BN.dSeperation(['xray'],['smoke'],['lung', 'dysp']) == True
     assert BN.dSeperation(['xray'],['smoke'],['lung']) == True
+    assert BN.dSeperation(['asia'],['bronc'],['smoke', 'dysp']) == True
 
     exit()
