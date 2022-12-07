@@ -193,6 +193,7 @@ class VariableElimination(Inference):
         print(self.variables)
         print(elimination_order)
         for var in pbar:
+            print(var)
             if show_progress and SHOW_PROGRESS:
                 pbar.set_description(f"Eliminating: {var}")
             # Removing all the factors containing the variables which are
@@ -203,7 +204,8 @@ class VariableElimination(Inference):
                 if not set(factor.variables).intersection(eliminated_variables)
             ]
             
-            
+            print(*working_factors[var])
+            print("hi")
             phi = factor_product(*factors)
             print(phi)
             phi = getattr(phi, operation)([var], inplace=False)
@@ -223,6 +225,7 @@ class VariableElimination(Inference):
              
                     final_distribution.add((factor, origin))
         final_distribution = [factor for factor, _ in final_distribution]
+        print(*final_distribution)
        
         if joint:
             print(*final_distribution)

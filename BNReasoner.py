@@ -184,6 +184,7 @@ class BNReasoner:
         else :
             new = f
             print(f)
+            print(g)
             new['p'] = new['p'] * g['p']
             print(new)
         return new
@@ -244,9 +245,20 @@ class BNReasoner:
     
     def _get_all_factors(self, X):
         """Return a list of all factors"""
-        factors = []
+        factors = {}
         for node in X:
-            factors.append(self.bn.get_cpt(node))
+            part_factors = []
+            cpt = self.bn.get_cpt(node)
+            part_factors.append(cpt)
+
+            for var in self.bn.get_children(node):
+                if var in X and var != node:
+                    cpt = self.bn.get_cpt(var)
+                    if node in cpt.columns:
+                        part_factors.append(cpt)
+            
+            factors[node] = part_factors
+            
         return factors
 
     def variableElimination(self, Q, X, order_method = 'min_degree'):
@@ -257,27 +269,28 @@ class BNReasoner:
         elimination_order = self.ordering(X, order_method) if len(X) != 0 else [] # get elimination order
 
         # get factors
-        Q = Q 
+        variables = Q + list(X)
 
-        work_factors = self._get_all_factors(Q)
+        work_factors = self._get_all_factors(variables)
      
         eliminated_variables = set()
         
         for node in elimination_order:  # iterate over elimination order
+            print(node)
             factors = []
-            for factor in work_factors:
-                if not set(factor.columns).intersection(eliminated_variables):
+            for factor in work_factors[node]:
+                if not set(variables).intersection(eliminated_variables):
                     factors.append(factor)
 
             num_factors = len(factors)
             factor_product = factors[0]
-            
             for i in range(1,num_factors):
                 factor_product = self.factorMultiplication(factor_product, factors[i])
-            print(factor_product)
             marg_factor = self.marginalization(node, factor_product)
+            print(marg_factor)
+            work_factors[node] = work_factors[node].append(marg_factor)
 
-        print(marg_factor)
+        print(work_factors)
         return marg_factor
     
     def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
@@ -298,7 +311,7 @@ class BNReasoner:
 
 
         joint = self.variableElimination(Q_plus_e, elimination_variables, order_method) # hier gaat vgm nog wat mis
-        print(joint)
+     
         if len(e) == 0:
             return joint
         else:
@@ -308,8 +321,7 @@ class BNReasoner:
             pr_e = helper
             
             posterior = joint
-            print(joint)
-            print(pr_e)
+   
             posterior['p'] = joint['p'] / float(pr_e['p'])
             return posterior
 
