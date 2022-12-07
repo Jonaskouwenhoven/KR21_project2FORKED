@@ -61,57 +61,57 @@ def test_marginalDistribution2(BN):
 
         reader = XMLBIFReader("testing/lecture_example.BIFXML")
         model = reader.get_model()
-        res1 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
-        print(res1)
+        res1 = VariableElimination(model).query(['Winter?'], evidence={'Wet Grass?': 'False'})
+        #print(res1)
         #res1['p']  = res1['p'] / float(res1['p'].sum())
         #print(res1)
         #print(Q,e)
-        res2 = BN_test.marginalDistribution(['Winter?', 'Rain?', 'Wet Grass?'], {'Slippery Road?': False})
+        res2 = BN_test.marginalDistribution(['Winter?'], {'Wet Grass?': True}, 'min_degree')
         res2['p'] = res2['p']/float(res2['p'].sum())
         print(res2)
-        
-        # try:
-        #     BN_test.marginalDistribution(Q, e)
-        # except:
-        #     print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
-        #     return False
+        break
+        try:
+            BN_test.marginalDistribution(Q, e)
+        except:
+            print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
+            return False
 
     return True
 
 def test_marginalDistribution3(BN):
-    reader = XMLBIFReader("testing/lecture_example.BIFXML")
-    model = reader.get_model()
+    # reader = XMLBIFReader("testing/lecture_example.BIFXML")
+    # model = reader.get_model()
 
-    print(model)
-    # infer = CausalInference(model)
+    # print(model)
+    # # infer = CausalInference(model)
     # print(infer.query(['Rain?', 'Sprinkler?']))
-    print(VariableElimination(model).query(['Rain?', 'Sprinkler?'], evidence={'Winter?': 'False'}))
+    #print(VariableElimination(model).query(['Rain?', 'Sprinkler?'], evidence={'Winter?': 'False'}))
 
     ### Test marginalDistribution
     # Test for prior distribution
     
-    print(BN.marginalDistribution(['Rain?', 'Sprinkler?'], {'Winter?': True}))
+    #print(BN.marginalDistribution(['Rain?', 'Sprinkler?'], {'Winter?': True}))
 
 
-    # perms = []
-    # for i in range(1,len(variable_set)):
-    #     comb = itertools.combinations(variable_set, i)
+    perms = []
+    for i in range(1,len(variable_set)):
+        comb = itertools.combinations(variable_set, i)
        
-    #     perms.append([list(c) for c in comb])
+        perms.append([list(c) for c in comb])
     
 
-    # # Test conditionalDistribution for all splits
-    # for perm in perms:
-    #     for Q in perm:
-    #         BN_test = copy.deepcopy(BN)
+    # Test conditionalDistribution for all splits
+    for perm in perms:
+        for Q in perm:
+            BN_test = copy.deepcopy(BN)
             
-    #         BN_test.marginalDistribution(Q)
+            BN_test.marginalDistribution(Q)
             
-    #         # try:
-    #         #     BN_test.marginalDistribution(Q)
-    #         # except:
-    #         #     print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, None))
-    #         #     return False
+            # try:
+            #     BN_test.marginalDistribution(Q)
+            # except:
+            #     print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, None))
+            #     return False
 
     return True
      
