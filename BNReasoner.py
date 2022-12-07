@@ -3,7 +3,7 @@ from BayesNet import BayesNet
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
-# import test_BNR
+import test_BNR
 import numpy as np
 import pgmpy
 

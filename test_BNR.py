@@ -168,7 +168,7 @@ def test(BN):
     # test_maxingout(BN) ## Works
     # test_fact_mult(BN) ## Works
     # test_ordering(BN) ## Not Sure
-    
+    pass
     
 if __name__ == "__main__":
     BN = BNReasoner('testing/lecture_example.BIFXML')
