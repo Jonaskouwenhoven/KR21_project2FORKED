@@ -4,6 +4,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import test_BNR
+import numpy as np
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -49,32 +50,47 @@ class BNReasoner:
     #     self.outDict = outDict
 
     
-    def netPrune(self,Q, evidence):
+    def netPrune(self, Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
+        evidence_nodes = list(evidence.keys())
+
+        Q_plus_e = Q + evidence_nodes
         
         variables = self.bn.get_all_variables()
-        for key in evidence.keys():
-            variables.remove(key)
+        
+
+        # get all factors
+        factors = self.bn.get_all_cpts()
+        
+        
+        # reduce factors with regard to e
+        if len(evidence) != 0:
+            for node in variables:
+                new_factor = self.bn.reduce_factor(pd.Series(evidence), factors[node])
+                for e in evidence_nodes:
+                    if e in new_factor.columns:
+                        new_factor = new_factor[new_factor['p'] != 0]
+                self.bn.update_cpt(node, new_factor)
 
         
-        for key, value in zip(evidence.keys(), evidence.values()):
-            for var in variables:
-                cpt = self.bn.get_cpt(var)
-                if key not in cpt.columns:
-                    continue
-                instantation = pd.Series({key:value})
-                cit = self.bn.get_compatible_instantiations_table(instantation, cpt)
-                # crt = self.bn.reduce_factor(instantation, cpt)
-                self.bn.update_cpt(key, cit)
-                print(cpt)
-                print(cit)
-            self.bn.del_var(key)
-            
-            
+        # Edge Purning
+        for e in evidence:
+            children = self.bn.get_children(e)
+            for child in children:
 
-        self.bn.draw_structure()
-                # print(crt)
-        pass
+                self.bn.del_edge((e, child))
+
+        # Node Pruning
+        for variable in variables:
+            if variable not in Q_plus_e:
+                delete = True
+                for q in Q_plus_e:  
+                    if variable in self.bn.get_cpt(q).columns:
+                        delete = False
+                if delete:
+                    self.bn.del_var(variable)
+            
+        return
 
         
     def dSeperation(self, X, Y, Z):
@@ -95,18 +111,20 @@ class BNReasoner:
         
         return False
     
-    def marginalization(self, X, cpt):
+    def marginalization(self, X, f):
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
-        #NOTE: Hier moet nog wat aan gedaan worden. Er staat given a "factor" and a varaible X, maar nu gebruik je die factor niet. je moet ook de andere cpt aanpassen
-        #cpt = self.bn.get_cpt(X)
-       
-        if X not in cpt.columns:
-            return cpt
+        
+        if X not in f.columns:
+            return f
         else:
-            new_columns = [c for c in (cpt.columns) if c not in [X, 'p']]
-            cpt = cpt.groupby(new_columns)["p"].sum().reset_index()
-            return cpt
+            new_f = f
+        
+            new_columns = [c for c in (new_f.columns) if c not in [X, 'p']]
+         
+            new_f = new_f.groupby(new_columns)["p"].sum().reset_index()
+            #new_f['p']  = new_f['p'] / new_f['p'].sum()
+            return new_f
 
 
     
@@ -130,26 +148,33 @@ class BNReasoner:
     def factorMultiplication(self, f, g):
         #JONAS
         #TODO: Factor multiplication: Given two factors f and g, compute the multiplied factor h=fg. (5pts)
+        
         f_columns = (f.columns.drop('p'))
         g_columns = (g.columns.drop('p'))
-        double = (f_columns).intersection(g_columns)[0]
-        if not double:
-            return False
+      
+        double = list((f_columns).intersection(g_columns))
         
-        else:
+        # if not double:
+        #     return False
+      
+    
+        if len(double) > 0:
             new = pd.merge(f, g, on=double)
             new['p'] = new['p_x'] * new['p_y']
             new.drop(columns=['p_x', 'p_y'], inplace=True)
-            
-        print(new)
-        # Werkt wat moet ik ermee!?
+        else :
+            new = f
+            print(f)
+            new['p'] = new['p'] * g['p']
+            print(new)
+        return new
 
         
     def _min_degree(self, X, int_graph):
         """Return the node with minimum degree in the graph"""
        
         int_sub_graph = [node for node in int_graph.degree if node[0] in X]
-        return min(int_sub_graph, key=lambda x: x[1])[0]
+        return min(int_sub_graph, key=lambda x: x[1])[0] 
     
     def _fill(self, int_graph, node):
         """Return the fill of a node in the graph"""
@@ -166,6 +191,7 @@ class BNReasoner:
             tot += edges
     
         return tot/2
+
     def draw_graph(self, graph):
         """Draw a graph with networkx"""
         nx.draw(graph, with_labels=True, node_size = 3000)
@@ -188,74 +214,88 @@ class BNReasoner:
         order = []
         order_func = self._min_degree if method == 'min_degree' else self._min_fill
         
+        X_copy = X.copy()
         for i in range(len(X)):
             node = order_func(X, int_graph)
             order.append(node)
             int_graph.remove_node(node)
             
-            X.remove(node)
+            X_copy.remove(node)
         return order
     
-    def variableElimination(self, X, order_method = 'min_degree'):
+    def _get_all_factors(self, X):
+        """Return a list of all factors"""
+        factors = []
+        for node in X:
+            factors.append(self.bn.get_cpt(node))
+        return factors
+
+    def variableElimination(self, Q, X, order_method = 'min_degree'):
         #SICCO
         #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
+        # Deze functie klopt nog niet helemaal...
+
+        elimination_order = self.ordering(X, order_method) if len(X) != 0 else [] # get elimination order
+
+        # get factors
+        Q = Q 
+
+        work_factors = self._get_all_factors(Q)
+     
+        eliminated_variables = set()
         
-        order = self.ordering(X, order_method) # get elimination order
+        for node in elimination_order:  # iterate over elimination order
+            factors = []
+            for factor in work_factors:
+                if not set(factor.columns).intersection(eliminated_variables):
+                    factors.append(factor)
 
-        for node in order:  # iterate over elimination order
-            prob = self.bn.get_cpt(node)
-            if len(prob.columns) > 2:  # if node cannot be eliminated directly, perform variable elimination on node
-                self.variableElimination(list(prob.columns.drop([node, 'p'])), order_method)
-                prob = self.bn.get_cpt(node)
+            num_factors = len(factors)
+            factor_product = factors[0]
             
-            children = self.bn.get_children(node) # get children of node, this is not iteratively udpated
+            for i in range(1,num_factors):
+                factor_product = self.factorMultiplication(factor_product, factors[i])
+            print(factor_product)
+            marg_factor = self.marginalization(node, factor_product)
 
-            for child in children:
-                cpt = self.bn.get_cpt(child) 
-         
-                if node in cpt.columns: # if no elimination was performed in recursive step, elminate
-
-                    cpt.loc[cpt[node] == False,'p'] = cpt.loc[cpt[node] == False,'p'] * float(prob.loc[prob[node] == False,'p'])
-                    cpt.loc[cpt[node] == True,'p'] = cpt.loc[cpt[node] == True,'p'] * float(prob.loc[prob[node] == True,'p'])
-                
-                    marg_factor = self.marginalization( node, cpt) # marginalize node
-
-                    self.bn.update_cpt(child, marg_factor)
-                else:
-                    continue
-        return
+        print(marg_factor)
+        return marg_factor
     
     def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
-        # get all factors
-        factors = self.bn.get_all_cpts()
-        # reduce factors with regard to e
-        if len(e) != 0:
-            for node in self.bn.get_all_variables():
-                new_factor = self.bn.reduce_factor(pd.Series(e), factors[node])
-                self.bn.update_cpt(node, new_factor)
-            
+        
+        # pruning
+        self.netPrune(Q, e)
+        variables = self.bn.get_all_variables()
+        print(variables)
         # order
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node
-    
+        elimination_variables =  (
+            set(variables)
+            - set(Q_plus_e)
+        )
 
-        self.variableElimination(Q_plus_e, order_method)
 
-        # posterior
-        posterior_probs = {}
-        for node in Q:
-            joint_marginal = self.bn.get_cpt(node)
-            posterior = joint_marginal.copy()
-             
-            for e in evidence_node:
-                if e in posterior.columns:
-                    prior = self.bn.get_cpt(e)
-                    posterior['p'] = joint_marginal['p'] / float(prior.loc[prior[evidence_node[0]]==e[evidence_node[0]], 'p'])
-            posterior_probs[node] = posterior
-        return posterior_probs  
-    
+        joint = self.variableElimination(Q_plus_e, elimination_variables, order_method) # hier gaat vgm nog wat mis
+        print(joint)
+        if len(e) == 0:
+            return joint
+        else:
+            helper = joint
+            for q in Q:
+                helper = self.marginalization(q, helper)
+            pr_e = helper
+            
+            posterior = joint
+            print(joint)
+            print(pr_e)
+            posterior['p'] = joint['p'] / float(pr_e['p'])
+            return posterior
+
+        return
+
     def MAP(self, Q, e, order_method = 'min_degree'):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
         
@@ -298,9 +338,9 @@ if __name__ == '__main__':
     #BN.factorMultiplication(cptWet, cptRain)
 
     ### Test ordering, variable elimination and marginal distribution
-    test_val1 = test_BNR.test_marginalDistribution1(BN)
-    test_val2  = test_BNR.test_marginalDistribution2(BN)
-    test_val3 = test_BNR.test_marginalDistribution3(BN)
+    test_val1 = True#test_BNR.test_marginalDistribution1(BN)
+    test_val2  = test_BNR.test_marginalDistribution2(BN) 
+    test_val3 = True #test_BNR.test_marginalDistribution3(BN)
     
     if test_val1 and test_val2 and test_val3:
         print("Test marginal distribution passed")
