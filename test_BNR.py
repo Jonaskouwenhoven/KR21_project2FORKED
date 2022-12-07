@@ -118,17 +118,14 @@ def test_marginalDistribution3(BN):
     return True
      
 def test_dsep(BN):
-    reader = XMLBIFReader("testing/lecture_example.BIFXML")
-    model = reader.get_model()
     assert (BN.dSeperation(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Winter?'},{'Rain?'}, {'Slippery Road?'})))
     assert (BN.dSeperation(['Slippery Road?'], ['Rain?'], ['Winter?'])  ==  (nx.d_separated(BN.bn.structure, {'Rain?'},{'Slippery Road?'}, {'Winter?'})))
     assert (BN.dSeperation(['Sprinkler?'], ['Slippery Road?'], ['Winter?']) ==  (nx.d_separated(BN.bn.structure, {'Sprinkler?'},{'Slippery Road?'}, {'Winter?'})))
 
 def test_ind(BN):
-    reader = XMLBIFReader("testing/lecture_example.BIFXML")
+
     assert (BN.independence(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Winter?'},{'Rain?'}, {'Slippery Road?'})))
-    # assert (BN.dSeperation(['Slippery Road?'], ['Rain?'], ['Winter?'])  ==  (nx.d_separated(BN.bn.structure, {'Rain?'},{'Slippery Road?'}, {'Winter?'})))
-    # assert (BN.dSeperation(['Sprinkler?'], ['Slippery Road?'], ['Winter?']) ==  (nx.d_separated(BN.bn.structure, {'Sprinkler?'},{'Slippery Road?'}, {'Winter?'})))
+
 
 
 def test_prune(BN):
@@ -136,10 +133,22 @@ def test_prune(BN):
     pass
 
 def test_marg(BN):
-    reader = XMLBIFReader("testing/lecture_example.BIFXML")
+
     newDf = (BN.marginalization('Winter?', BN.bn.get_cpt('Rain?')))
     assert newDf['p'].to_list()[0] == 1.1
     assert newDf['p'].to_list()[1] == 0.9
+    
+def test_maxingout(BN):
+
+    maxed_out = (BN.maxingOut('Rain?'))
+    assert maxed_out.loc[maxed_out['Winter?'] == True]['p'].to_list()[0] == 0.8
+    assert maxed_out.loc[maxed_out['Winter?'] == False]['p'].to_list()[0] == 0.9
+
+def test_fact_mult(BN):
+    ## Check for commutative property
+    assert (BN.factorMultiplication(BN.bn.get_cpt('Rain?'), BN.bn.get_cpt('Winter?'))['p'].to_list() ==  BN.factorMultiplication(BN.bn.get_cpt('Winter?'), BN.bn.get_cpt('Rain?'))['p'].to_list())
+    assert BN.factorMultiplication(BN.bn.get_cpt('Rain?'), BN.bn.get_cpt('Winter?'))['p'].to_list()[-1] == 0.48
+    
 
 def test(BN):
     #test_marginalDistribution(BN)
@@ -148,7 +157,9 @@ def test(BN):
     # test_dsep(BN) ## Correct
     # test_ind(BN) ## Correct
     # test_prune(BN) ## Not sure
-    test_marg(BN)
+    # test_marg(BN) ## Works
+    # test_maxingout(BN) ## Works
+    test_fact_mult(BN) ## Works
 
 if __name__ == "__main__":
     BN = BNReasoner('testing/lecture_example.BIFXML')

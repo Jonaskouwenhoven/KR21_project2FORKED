@@ -140,7 +140,6 @@ class BNReasoner:
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
         if X not in list(f.columns):
-            print("Is this called")
             return f
         
         else:
