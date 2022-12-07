@@ -54,7 +54,7 @@ class BNReasoner:
     def netPrune(self, Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
         evidence_nodes = list(evidence.keys())
-
+        # print(evidence, "THISSSS")
         Q_plus_e = Q + evidence_nodes
         
         variables = self.bn.get_all_variables()
@@ -91,7 +91,7 @@ class BNReasoner:
                 if delete:
                     self.bn.del_var(variable)
             
-        return
+        return self.bn
 
         
     def dSeperation(self, X, Y, Z):
@@ -128,10 +128,10 @@ class BNReasoner:
                                 return True
         return False
     
-    def independence(self):
+    def independence(self, X, Y, Z):
         #CAS
         #TODO: Independence: Given three sets of variables X, Y, and Z, determine whether X is independent of Y given Z. (Hint: Remember the connection between d-separation and independence) (1.5pt)
-        if self.dSeperation():
+        if self.dSeperation(X, Y, Z):
             return True
         
         return False
@@ -140,6 +140,7 @@ class BNReasoner:
         #JONAS
         #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
         if X not in list(f.columns):
+            print("Is this called")
             return f
         
         else:
@@ -289,7 +290,7 @@ class BNReasoner:
                 mat_cpt = self.factorMultiplication(temp[list(temp.keys())[0]], temp[list(temp.keys())[1]])
                 ding = (mat_cpt)
 
-                updated = self.marginalization([var], ding)
+                updated = self.marginalization(var, ding)
                 for factor in temp:
                     cpts.pop(factor)
                 
@@ -297,7 +298,7 @@ class BNReasoner:
                 cpts["factor" + str(fac)] = updated
             elif len(temp) == 1:
                 ding = (temp[list(temp.keys())[0]])
-                updated = self.marginalization([var], ding)
+                updated = self.marginalization(var, ding)
                 for factor in temp:
                     cpts.pop(factor)
                     
