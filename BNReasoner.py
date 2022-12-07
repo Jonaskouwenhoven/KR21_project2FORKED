@@ -293,25 +293,26 @@ class BNReasoner:
         work_factors = self._get_all_factors(variables)
      
         eliminated_variables = set()
-        
+        print(elimination_order)
         for node in elimination_order:  # iterate over elimination order
             factors = []
             for factor, org in work_factors[node]:
                 if not set(variables).intersection(eliminated_variables):
                     factors.append(factor)
 
-           
+
             num_factors = len(factors)
-            
+
             factor_product = factors[0]
             for i in range(1,num_factors):
                 factor = factors[i]
-                factor_product = self.factorMultiplication(factor_product, factor)
-            marg_factor = self.marginalization(node, factor_product)
-            
+                factor_product = self.factorMultiplication(factor, factor_product)
 
+            marg_factor = self.marginalization(node, factor_product)
+  
+            
             for var in marg_factor.columns:
-                if var != 'p':
+                if var != 'p' and var in work_factors:
                     entries = [org for factor, org in work_factors[var]]
                     if node in entries:
                         index = entries.index(node)
@@ -320,25 +321,26 @@ class BNReasoner:
 
             del work_factors[node]
 
-     
+        print("XXXXXXXXXXXXX")
         final_distribution = []
         column_sets = set()
         for node in work_factors:
             for factor, org in work_factors[node]:
+                print(factor)
                 if not set(factor.columns[:-1]).intersection(eliminated_variables) and tuple(factor.columns[:-1]) not in column_sets:
                     if all(col in Q for col in factor.columns[:-1]):
                         column_sets.add(tuple(factor.columns[:-1]))
                         final_distribution.append((factor))
         final_distribution = [factor for factor in final_distribution]
         
-        print(final_distribution)
+
 
         factor_product = final_distribution[0]
         for i in range(1,len(final_distribution)):
             
             factor_product = self.factorMultiplication(factor_product, final_distribution[i])
            
- 
+
         return factor_product
     
     def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):

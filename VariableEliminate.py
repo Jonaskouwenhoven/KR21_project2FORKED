@@ -181,11 +181,12 @@ class VariableElimination(Inference):
         eliminated_variables = set()
         # Get working factors and elimination order
         working_factors = self._get_working_factors(evidence)
+        
+
         elimination_order = self._get_elimination_order(
             variables, evidence, elimination_order, show_progress=show_progress
         )
-        print(evidence)
-        print(working_factors)
+    
         # Step 3: Run variable elimination
         if show_progress and SHOW_PROGRESS:
             pbar = tqdm(elimination_order)
@@ -204,10 +205,10 @@ class VariableElimination(Inference):
                 if not set(factor.variables).intersection(eliminated_variables)
             ]
             
-        
+            
             phi = factor_product(*factors)
-
             phi = getattr(phi, operation)([var], inplace=False)
+
             del working_factors[var]
             for variable in phi.variables:
                 working_factors[variable].add((phi, var))
@@ -219,12 +220,10 @@ class VariableElimination(Inference):
       
         for node in working_factors:
             for factor, origin in working_factors[node]:
-                print(factor)
                 if not set(factor.variables).intersection(eliminated_variables):
-             
+
                     final_distribution.add((factor, origin))
         final_distribution = [factor for factor, _ in final_distribution]
-        print('XXXXXXXXXXXXXXX')
         print(*final_distribution)
        
         if joint:
@@ -431,7 +430,7 @@ class VariableElimination(Inference):
         self,
         variables=None,
         evidence=None,
-        elimination_order="MinFill",
+        elimination_order="MinDegree",
         show_progress=True,
         ):
         """
