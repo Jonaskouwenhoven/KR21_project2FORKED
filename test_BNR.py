@@ -6,6 +6,7 @@ import networkx as nx
 from BNReasoner import BNReasoner
 from pgmpy.inference import CausalInference
 from VariableEliminate import VariableElimination
+from pgmpy.inference import EliminationOrder
 from pgmpy.readwrite import XMLBIFReader
 import pgmpy
 
@@ -149,6 +150,12 @@ def test_fact_mult(BN):
     assert (BN.factorMultiplication(BN.bn.get_cpt('Rain?'), BN.bn.get_cpt('Winter?'))['p'].to_list() ==  BN.factorMultiplication(BN.bn.get_cpt('Winter?'), BN.bn.get_cpt('Rain?'))['p'].to_list())
     assert BN.factorMultiplication(BN.bn.get_cpt('Rain?'), BN.bn.get_cpt('Winter?'))['p'].to_list()[-1] == 0.48
     
+def test_ordering(BN):
+    variables = ['Rain?', 'Winter?', 'Slippery Road?']
+    evidence = {'Wet Grass?': True}
+    elimination_order = 'MinFill'
+    # Not quite sure how to test
+    pass
 
 def test(BN):
     #test_marginalDistribution(BN)
@@ -159,8 +166,10 @@ def test(BN):
     # test_prune(BN) ## Not sure
     # test_marg(BN) ## Works
     # test_maxingout(BN) ## Works
-    test_fact_mult(BN) ## Works
-
+    # test_fact_mult(BN) ## Works
+    # test_ordering(BN) ## Not Sure
+    
+    
 if __name__ == "__main__":
     BN = BNReasoner('testing/lecture_example.BIFXML')
     # BN.bn.draw_structure()
