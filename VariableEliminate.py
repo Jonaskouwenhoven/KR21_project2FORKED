@@ -184,14 +184,14 @@ class VariableElimination(Inference):
         elimination_order = self._get_elimination_order(
             variables, evidence, elimination_order, show_progress=show_progress
         )
-
+        print(evidence)
+        print(working_factors)
         # Step 3: Run variable elimination
         if show_progress and SHOW_PROGRESS:
             pbar = tqdm(elimination_order)
         else:
             pbar = elimination_order
-        print(self.variables)
-        print(elimination_order)
+      
         for var in pbar:
             print(var)
             if show_progress and SHOW_PROGRESS:
@@ -204,10 +204,9 @@ class VariableElimination(Inference):
                 if not set(factor.variables).intersection(eliminated_variables)
             ]
             
-            print(*working_factors[var])
-            print("hi")
+        
             phi = factor_product(*factors)
-            print(phi)
+
             phi = getattr(phi, operation)([var], inplace=False)
             del working_factors[var]
             for variable in phi.variables:
@@ -220,15 +219,15 @@ class VariableElimination(Inference):
       
         for node in working_factors:
             for factor, origin in working_factors[node]:
-                
+                print(factor)
                 if not set(factor.variables).intersection(eliminated_variables):
              
                     final_distribution.add((factor, origin))
         final_distribution = [factor for factor, _ in final_distribution]
+        print('XXXXXXXXXXXXXXX')
         print(*final_distribution)
        
         if joint:
-            print(*final_distribution)
             if isinstance(self.model, BayesianNetwork):
                 return factor_product(*final_distribution).normalize(inplace=False)
             else:

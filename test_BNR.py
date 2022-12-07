@@ -61,9 +61,15 @@ def test_marginalDistribution2(BN):
 
         reader = XMLBIFReader("testing/lecture_example.BIFXML")
         model = reader.get_model()
-        print(VariableElimination(model).query(['Winter?'], evidence={'Slippery Road?': 'True'}))
+        res1 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
+        print(res1)
+        #res1['p']  = res1['p'] / float(res1['p'].sum())
+        #print(res1)
         #print(Q,e)
-        print(BN_test.marginalDistribution(['Winter?'], {'Slippery Road?': False}))
+        res2 = BN_test.marginalDistribution(['Winter?', 'Rain?', 'Wet Grass?'], {'Slippery Road?': False})
+        res2['p'] = res2['p']/float(res2['p'].sum())
+        print(res2)
+        
         # try:
         #     BN_test.marginalDistribution(Q, e)
         # except:

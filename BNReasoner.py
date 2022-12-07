@@ -143,6 +143,7 @@ class BNReasoner:
          
             new_f = new_f.groupby(new_columns)["p"].sum().reset_index()
             #new_f['p']  = new_f['p'] / new_f['p'].sum()
+         
             return new_f
 
 
@@ -183,10 +184,9 @@ class BNReasoner:
             new.drop(columns=['p_x', 'p_y'], inplace=True)
         else :
             new = f
-            print(f)
-            print(g)
+          
             new['p'] = new['p'] * g['p']
-            print(new)
+    
         return new
 
         
@@ -249,16 +249,16 @@ class BNReasoner:
         for node in X:
             part_factors = []
             cpt = self.bn.get_cpt(node)
-            part_factors.append(cpt)
+            part_factors.append((cpt,node))
 
             for var in self.bn.get_children(node):
                 if var in X and var != node:
                     cpt = self.bn.get_cpt(var)
                     if node in cpt.columns:
-                        part_factors.append(cpt)
-            
+                        part_factors.append((cpt, var))
+  
             factors[node] = part_factors
-            
+        
         return factors
 
     def variableElimination(self, Q, X, order_method = 'min_degree'):
@@ -267,7 +267,7 @@ class BNReasoner:
         # Deze functie klopt nog niet helemaal...
 
         elimination_order = self.ordering(X, order_method) if len(X) != 0 else [] # get elimination order
-
+   
         # get factors
         variables = Q + list(X)
 
@@ -276,22 +276,51 @@ class BNReasoner:
         eliminated_variables = set()
         
         for node in elimination_order:  # iterate over elimination order
-            print(node)
             factors = []
-            for factor in work_factors[node]:
+            for factor, org in work_factors[node]:
                 if not set(variables).intersection(eliminated_variables):
                     factors.append(factor)
 
+           
             num_factors = len(factors)
+            
             factor_product = factors[0]
             for i in range(1,num_factors):
-                factor_product = self.factorMultiplication(factor_product, factors[i])
+                factor = factors[i]
+                factor_product = self.factorMultiplication(factor_product, factor)
             marg_factor = self.marginalization(node, factor_product)
-            print(marg_factor)
-            work_factors[node] = work_factors[node].append(marg_factor)
+            
 
-        print(work_factors)
-        return marg_factor
+            for var in marg_factor.columns:
+                if var != 'p':
+                    entries = [org for factor, org in work_factors[var]]
+                    if node in entries:
+                        index = entries.index(node)
+                
+                        work_factors[var][index] = (marg_factor, node)
+
+            del work_factors[node]
+
+     
+        final_distribution = []
+        column_sets = set()
+        for node in work_factors:
+            for factor, org in work_factors[node]:
+                if not set(factor.columns[:-1]).intersection(eliminated_variables) and tuple(factor.columns[:-1]) not in column_sets:
+                    if all(col in Q for col in factor.columns[:-1]):
+                        column_sets.add(tuple(factor.columns[:-1]))
+                        final_distribution.append((factor))
+        final_distribution = [factor for factor in final_distribution]
+        
+        print(final_distribution)
+
+        factor_product = final_distribution[0]
+        for i in range(1,len(final_distribution)):
+            
+            factor_product = self.factorMultiplication(factor_product, final_distribution[i])
+           
+ 
+        return factor_product
     
     def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
         #SICCO
@@ -303,7 +332,7 @@ class BNReasoner:
         print(variables)
         # order
         evidence_node =  list(e.keys()) 
-        Q_plus_e = Q + evidence_node
+        Q_plus_e = Q + evidence_node 
         elimination_variables =  (
             set(variables)
             - set(Q_plus_e)
@@ -311,7 +340,8 @@ class BNReasoner:
 
 
         joint = self.variableElimination(Q_plus_e, elimination_variables, order_method) # hier gaat vgm nog wat mis
-     
+
+
         if len(e) == 0:
             return joint
         else:
