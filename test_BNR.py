@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import copy
 import networkx as nx
-from BNReasoner import BNReasoner
+from BNReasoner2 import BNReasoner
+from copied_BNResoner import BNReasoner as BNReasoner2 
 from pgmpy.inference import CausalInference
 from VariableEliminate import VariableElimination
 from pgmpy.inference import EliminationOrder
@@ -58,18 +59,23 @@ def test_marginalDistribution2(BN):
     # Test marginalDistribution for all splits
     for split in splits:
         
-        BN_test = BNReasoner('testing/lecture_example.BIFXML')
+        BN_test = BNReasoner('testing/dog_problem.BIFXML')
         Q = list(split[0])
         e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
 
-        reader = XMLBIFReader("testing/lecture_example.BIFXML")
+        reader = XMLBIFReader("testing/dog_problem.BIFXML")
         model = reader.get_model()
-        res1 = VariableElimination(model).query(['Winter?'], evidence={'Wet Grass?': 'False'})
+        #res1 = VariableElimination(model).query(['hear-bark', 'dog-out'], evidence ={'bowel-problem': False, 'family-out': True})
         #print(res1)
         #res1['p']  = res1['p'] / float(res1['p'].sum())
         #print(res1)
         #print(Q,e)
-        res2 = BN_test.marginalDistribution(['Winter?'], {'Wet Grass?': True}, 'min_degree')
+
+        BN_test2 = BNReasoner2('testing/lecture_example.BIFXML')
+        
+        res3 = BN_test2.posterior_marginal(['hear-bark', 'dog-out'], [('bowel-problem', False), ('family-out', True)])
+        print(res3)
+        res2 = BN_test.marginal_dist(['Winter?'], {'Wet Grass?': True}, 'min_degree')
         res2['p'] = res2['p']/float(res2['p'].sum())
         print(res2)
         break
