@@ -2,10 +2,14 @@ from typing import Union
 from BayesNet import BayesNet
 import pandas as pd
 import networkx as nx
+from pgmpy.readwrite import XMLBIFReader
+
 import matplotlib.pyplot as plt
-#import test_BNR
+import test_BNR
 import numpy as np
 import pgmpy
+from VariableEliminate import VariableElimination
+
 
 class BNReasoner:
     def __init__(self, net: Union[str, BayesNet]):
@@ -20,14 +24,41 @@ class BNReasoner:
         else:
             self.bn = net
             
+        # self.inDict = None
+        # self.outDict = None
 
     # TODO: This is where your methods should go
     
+    # def getding(self):
+    #     """Store the in and out degree of each node in the network"""
+
+    #     vars = BN.bn.get_all_variables()
+    #     inDict, outDict = {}, {}
+    #     for var in vars:
+    #         neighbors = list(BN.bn.structure.neighbors(var))
+
+    #         if len(list(neighbors)) < 1:
+    #             continue
+    #         else:
+    #             for n in list(neighbors):
+    #                 if n in inDict:
+    #                     inDict[n].append(var)
+    #                 else:
+    #                     inDict[n] = [var]
+                    
+    #                 if var in outDict:
+    #                     outDict[var].append(n)
+    #                 else:
+    #                     outDict[var] = [n]
+                        
+    #     self.inDioc = inDict
+    #     self.outDict = outDict
+
     
     def netPrune(self, Q, evidence):
         #TODO: Network Pruning: Given a set of query variables Q and evidence e, node- and edge-prune the Bayesian network s.t. queries of the form P(Q|E) can still be correctly calculated
-        evidence_nodes = list(evidence.keys()) if len(evidence) > 0 else []
-
+        evidence_nodes = list(evidence.keys())
+        # print(evidence, "THISSSS")
         Q_plus_e = Q + evidence_nodes
         
         variables = self.bn.get_all_variables()
@@ -47,34 +78,29 @@ class BNReasoner:
                 self.bn.update_cpt(node, new_factor)
 
         
-        ### Edge Pruning
+        # Edge Purning
         for e in evidence:
             children = self.bn.get_children(e)
             for child in children:
 
                 self.bn.del_edge((e, child))
 
-        ### Node Pruning
-        subgraph = self.bn.structure.subgraph(Q).copy()
-        
-        # Get dependent variables
-        for node in Q_plus_e:
-            dependent_nodes = list(nx.algorithms.dag.ancestors(self.bn.structure, node))
-            dependent_nodes.append(node)
-            dependent_nodes_subgraph = self.bn.structure.subgraph(dependent_nodes).copy()
-            subgraph = nx.algorithms.operators.binary.compose(subgraph, dependent_nodes_subgraph)
-        
-        # Drop all irrelevant variables
-        for node in self.bn.get_all_variables():
-            if node not in list(subgraph.nodes()) and node not in evidence_nodes:
-                self.bn.del_var(node)
-
-        return self.bn
+        # Node Pruning
+        for variable in variables:
+            if variable not in Q_plus_e:
+                delete = True
+                for q in Q_plus_e:  
+                    if variable in self.bn.get_cpt(q).columns:
+                        delete = False
+                if delete:
+                    self.bn.del_var(variable)
+            
+        return 
 
         
-    def dSeparation(self, X, Y, Z):
+    def dSeperation(self, X, Y, Z):
         Graph = self.bn.structure
-      
+
         if X == Y:
             return False
         
@@ -130,34 +156,14 @@ class BNReasoner:
          
             return new_f
 
-    def maxingOut(self, X, f):
-        # Deze functie werkt nog niet goed
-        #TODO: Marginalization: Given a factor and a variable X, compute the CPT in which X is summed-out. (3pts)
-        if X not in list(f.columns):
-            return f
-        
-        else:
-            new_f = f
-        
-            new_columns = [c for c in (new_f.columns) if c not in [X, 'p']]
-            print(f, X)
-            print(f.loc[new_f.groupby(new_columns)["p"].idxmax(), X])
-            new_f = new_f.groupby(new_columns)["p"].max().reset_index()
-            #new_f['p']  = new_f['p'] / new_f['p'].sum()
-         
-            return new_f
 
     
-    def maxingOut1(self, X, factor):
-        ### Deze functie werkt niet zoals ik zou verwachten
+    def maxingOut(self, X):
         #JONAS
-        #TODO: Maxing-out: Given a factor and a variable X, compute the factor in which X is maxed-out. Remember to also keep track of which instantiation of X led to the maximized value. (5pts)
-     
-        falseDf = factor.loc[factor[X] == False].reset_index(drop=True)
-        trueDf = factor.loc[factor[X] == True].reset_index(drop=True)
-        print(falseDf)
-        print(trueDf)
-
+        #TODO: Maxing-out: Given a factor and a variable X, compute the CPT in which X is maxed-out. Remember to also keep track of which instantiation of X led to the maximized value. (5pts)
+        cpt = self.bn.get_cpt(X)
+        falseDf = cpt.loc[cpt[X] == False].reset_index(drop=True)
+        trueDf = cpt.loc[cpt[X] == True].reset_index(drop=True)
         dfList = []
         for i, el in enumerate(zip(falseDf['p'].to_list(), trueDf['p'].to_list())):
             if el[0] > el[1]:
@@ -168,6 +174,7 @@ class BNReasoner:
         maxedout = (pd.DataFrame(dfList))
         
         return maxedout
+
     
     def factorMultiplication(self, f, g):
         #JONAS
@@ -186,33 +193,14 @@ class BNReasoner:
             new = pd.merge(f, g, on=double)
             new['p'] = new['p_x'] * new['p_y']
             new.drop(columns=['p_x', 'p_y'], inplace=True)
-        else:
-            # Dit gaat not niet altijd goed
-            # merge two pd.DataFrames conditional probability tables without common columns            
-            len_g = len(g.index)
-            len_f = len(f.index)
-
-            f = pd.concat([f]*len_g, ignore_index=True)
-            g = pd.concat([g]*len_f, ignore_index=True)
-
-            g_columns = list(g.columns)[:-1]
-            
-            new = pd.concat([g[g_columns], f], axis=1)        
-            new['p'] = new['p']*g['p']
-
+        else :
+            new = f
+          
+            new['p'] = new['p'] * g['p']
+    
         return new
 
-    def factorsMultiplication(self, factors):
-        """Extension of factor Multiplication"""
-
-        factor_prod = factors[0]
-        if len(factors) > 0:
-            for factor in factors[1:]:
-                factor_prod = self.factorMultiplication(factor_prod, factor)
-    
-        return factor_prod
-    
-
+        
     def _min_degree(self, X, int_graph):
         """Return the node with minimum degree in the graph"""
        
@@ -284,127 +272,99 @@ class BNReasoner:
         
         return factors
 
-    def get_relevant_factors(self, node, factor_dict):
-        """Return a list of factors that contain the node and a list that don't"""
-        selected_factors = []
-        selected_keys = [] # Only non relevant for this selection. Non relevant factors will be used later on
-        
-        # iterate over stored factors
-        for key in factor_dict:
-            factor = factor_dict[key]
-            if node in factor.columns:
-                selected_factors.append(factor)
-                selected_keys.append(key)
+    def variableElimination(self, Q, elimination_variables, order_method = 'min_degree'):
+        var = self.bn.get_all_variables()
 
-        # remove the used selected_factors
-        for key in selected_keys:
-            factor_dict.pop(key)
-        
-        return selected_factors, factor_dict 
 
-    def variableElimination(self, elimination_variables, order_method = 'min_degree'):
-        #SICCO
-        #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
-        # Deze functie klopt nog niet helemaal...
+        elimination_variables = self.ordering(elimination_variables, order_method)
+        cpts = self.bn.get_all_cpts()
+        fac = 0
 
-        ### 1. Get elimination order
-        elimination_order = self.ordering(elimination_variables, order_method) if len(elimination_variables) != 0 else [] # get elimination order
+        for var in elimination_variables:
+            temp = {}
+            for cpt in cpts:
+                if var in cpts[cpt]:
+                    temp[cpt] = cpts[cpt]
+                    
+            if len(temp) > 1:
 
-        ### 3. Get all cpts of variables
-        factor_dict = self.bn.get_all_cpts()
-  
-        ### 4. Eliminate variables
-        for idx, node in enumerate(elimination_order):
-            # get relevant factors
-            working_factors, factor_dict = self.get_relevant_factors(node, factor_dict) # gets all the factors with node in the columns, and return factors without the used factors
-            
-            # multiply factors
-            factor_prod = self.factorsMultiplication(working_factors)
+                mat_cpt = self.factorMultiplication(temp[list(temp.keys())[0]], temp[list(temp.keys())[1]])
+                ding = (mat_cpt)
 
-            # margninalize
-            marg_factor = self.marginalization(node, factor_prod)
-      
-            # update work_factors
-            factor_dict[f'f{idx+1}'] = marg_factor
+                updated = self.marginalization(var, ding)
+                for factor in temp:
+                    cpts.pop(factor)
+                
+                fac += 1
+                cpts["factor" + str(fac)] = updated
+                
+            elif len(temp) == 1:
+                ding = (temp[list(temp.keys())[0]])
+                updated = self.marginalization(var, ding)
+                for factor in temp:
+                    cpts.pop(factor)
+                    
+                fac += 1
+                cpts['factor' + str(fac)] = updated
 
-        # multiply all factors
-        final_factors = []
-        for key in factor_dict:
-            final_factors.append(factor_dict[key])
-        
-        joint_marginal = self.factorsMultiplication(final_factors)
+        return cpts
 
-        return joint_marginal 
-
-    def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
-        #SICCO
-        #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
-        
-        ### 1. Reduce factors with regard to the evidence
-        if len(e) > 0 :
-            # get all factors
-            factors = self.bn.get_all_cpts()
     
-            # reduce factors with regard to e
-            for node in self.bn.get_all_variables():
-                new_factor = self.bn.reduce_factor(pd.Series(e), factors[node])
-                self.bn.update_cpt(node, new_factor)
-
-
-        ### 2. Prune network
-        self.netPrune(Q, e)
-        variables = self.bn.get_all_variables()
+    def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):        
         
-        ### 3. Reduce evidence factor
-        ev_fac = 1
-        for ev in e:
-            ev_fac *= self.bn.get_cpt(ev)['p'].sum()
-
-        ### 4. Set variable lists            
+        self.netPrune(Q, e)
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node 
         elimination_variables =  (
-            set(variables)
+            set(self.bn.get_all_variables())
             - set(Q_plus_e)
         )
 
-        ### 5. Compute joint marginal
-        joint = self.variableElimination(elimination_variables, order_method) 
+        eliminationOrder = self.ordering(elimination_variables, order_method)
+        totalCpts= []
+        for elim in eliminationOrder:
+            for node in self.bn.get_all_variables():
+                if elim  == node or node not in Q_plus_e:
+                    continue
+                
+                elimCpt = self.bn.get_cpt(elim)
+                nodeCpt = self.bn.get_cpt(node)
+                
+                if elim in nodeCpt.columns.to_list()[:-1]:
+                    finalCpt = self.factorMultiplication(elimCpt, nodeCpt)
+                    resultCpt = self.marginalization(elim, finalCpt)
+                    totalCpts.append(resultCpt)
+                    # self.bn.update_cpt(node, resultCpt)
+        for cpt in self.bn.get_all_cpts():
+            print(self.bn.get_all_cpts()[cpt])  #### HIER KOMEN VM DE GOEIE WAARDES UIT!!!!!
+        return 
+
         
-        if len(e) == 0:
-            return joint # if no evidence is provided, return the joint marginal = prior = posterior
-        else:
-            ### 6. Compute prior
-            helper = joint
-            for q in Q:
-                helper = self.marginalization(q, pd.DataFrame(helper))
-            pr_e = helper
-            
-            ### 7. Compute posterior
-            posterior = joint
-            posterior['p'] = joint['p'] / float(pr_e['p'])
-            return posterior
-
-        return
-
+        
     def MAP(self, Q, e, order_method = 'min_degree'):
         #TODO: Compute the maximum a-posteriory instantiation + value of query variables Q, given a possibly empty evidence e. (3pts)
         
-        ### 1. Set all variable lists
+        # get all factors
+        factors = BN.bn.get_all_cpts()
+ 
+        # reduce factors with regard to e
+        for node in BN.bn.get_all_variables():
+            new_factor = BN.bn.reduce_factor(pd.Series(e), factors[node])
+            BN.bn.update_cpt(node, new_factor)
+        
+        # order
         evidence_node =  list(e.keys()) 
         Q_plus_e = Q + evidence_node
 
-        ### 2. Get joint marginal
-        joint_marginal = self.marginalDistribution(Q_plus_e, order_method= order_method)
+        self.variableElimination(Q_plus_e, order_method)
+        
+        # joint marginal
+        
+        joint_marginal = self.bn.get_cpt(Q[0])
 
-        ### 3. Get MAP by maxing out all variables in Q
-    
-        helper = joint_marginal
-        for q in Q:
-            helper = self.maxingOut(q, helper)
+        MAP = self.maxingOut()
 
-        MAP = helper
-    
+        
         pass
         
     def MEP(self):
@@ -416,21 +376,11 @@ class BNReasoner:
 
 
 if __name__ == '__main__':
-    
-    BN = BNReasoner('testing/dog_problem.BIFXML')
-    # cptWet = BN.bn.get_cpt("Wet Grass?")
-    # cptRain = BN.bn.get_cpt("Rain?")
-    #BN.factorMultiplication(cptWet, cptRain)
+    reader = XMLBIFReader("testing/lecture_example.BIFXML")
+    model = reader.get_model()
+    BN = BNReasoner('testing/lecture_example.BIFXML')
+    margDist2 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
 
-    ### Test ordering, variable elimination and marginal distribution
-    test_val1 = test_BNR.test_marginalDistribution1(BN)
-    test_val2  = test_BNR.test_marginalDistribution2(BN) 
-    test_val3 = test_BNR.test_marginalDistribution3(BN)
-    
-    if test_val1 and test_val2 and test_val3:
-        print("Test marginal distribution passed")
-    else:
-        print("Test marginal distribution failed")
-        exit()
-
+    margDist = BN.marginalDistribution(['Winter?', 'Rain?', "Wet Grass?"], e={'Slippery Road?': 'False'})
+    print(margDist)
     exit()
