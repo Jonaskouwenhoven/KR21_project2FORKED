@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 #import test_BNR
 import numpy as np
 import itertools
+from itertools import combinations
 import pgmpy
 
 class BNReasoner:
@@ -204,22 +205,11 @@ class BNReasoner:
        
         int_sub_graph = [node for node in int_graph.degree if node[0] in X]
         return min(int_sub_graph, key=lambda x: x[1])[0] 
-    
+
     def _fill(self, int_graph, node):
         """Return the fill of a node in the graph"""
-        neighbors = int_graph.neighbors(node)
-        set_neighbors = set([el for el in neighbors])
         
-        tot = 0
-
-        
-        for n1 in set_neighbors:  
-            n_copy = set_neighbors.copy()
-            shared_edges = (set(int_graph.neighbors(n1)) & n_copy)
-            edges = len(n_copy.difference(shared_edges)) - 1
-            tot += edges
-    
-        return tot/2
+        return len(list(combinations(nx.neighbors(int_graph, node), 2))) 
 
     def draw_graph(self, graph):
         """Draw a graph with networkx"""
@@ -240,15 +230,17 @@ class BNReasoner:
         #TODO: Ordering: Given a set of variables X in the Bayesian network, compute a good ordering for the elimination of X based on the min-degree heuristics (2pts) and the min-fill heuristics (3.5pts). (Hint: you get the interaction graph ”for free” from the BayesNet class.)
         
         int_graph = self.bn.get_interaction_graph()
+    
         order = []
         order_func = self._min_degree if method == 'min_degree' else self._min_fill
         
         X_copy = X.copy()
+        
         for i in range(len(X)):
-            node = order_func(X, int_graph)
+            node = order_func(X_copy, int_graph)
             order.append(node)
-            int_graph.remove_node(node)
             
+            int_graph.remove_node(node)
             X_copy.remove(node)
         return order
     
@@ -479,9 +471,6 @@ class BNReasoner:
 
         
         
-
-
-
 if __name__ == '__main__':
     
     BN = BNReasoner('testing/dog_problem.BIFXML')

@@ -63,7 +63,7 @@ def test_marginalDistribution2(BN):
         e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
     
         try:
-            BN_test.marginalDistribution(Q, e)
+            BN_test.marginalDistribution(Q, e, "min_fill")
 
         except:
             print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
@@ -165,7 +165,7 @@ def test_MAP(BN):
         except:
             print('Error in MAP with Q = {} and e = {}'.format(Q, e))
             assert False
-    
+
     assert True
 
 def test_MPE(BN):
@@ -202,7 +202,7 @@ def test_MPE(BN):
 
 def test(BN):
     #test_marginalDistribution1(BN)
-    #test_marginalDistribution2(BN)
+    test_marginalDistribution2(BN)
     #test_marginalDistribution3(BN)
     # test_dsep(BN) ## Correct
     # test_ind(BN) ## Correct
@@ -211,7 +211,7 @@ def test(BN):
     # test_maxingout(BN) ## Works
     # test_fact_mult(BN) ## Works
     # test_ordering(BN) ## Not Sure
-    test_MAP(BN)
+    #test_MAP(BN)
     #test_MPE(BN)
     pass
     
