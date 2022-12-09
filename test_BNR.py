@@ -3,8 +3,7 @@ import numpy as np
 import pandas as pd
 import copy
 import networkx as nx
-from BNReasoner2 import BNReasoner
-from copied_BNResoner import BNReasoner as BNReasoner2 
+from BNReasoner import BNReasoner
 from pgmpy.inference import CausalInference
 from VariableEliminate import VariableElimination
 from pgmpy.inference import EliminationOrder
@@ -62,25 +61,10 @@ def test_marginalDistribution2(BN):
         BN_test = BNReasoner('testing/dog_problem.BIFXML')
         Q = list(split[0])
         e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
-
-        reader = XMLBIFReader("testing/dog_problem.BIFXML")
-        model = reader.get_model()
-        #res1 = VariableElimination(model).query(['hear-bark', 'dog-out'], evidence ={'bowel-problem': False, 'family-out': True})
-        #print(res1)
-        #res1['p']  = res1['p'] / float(res1['p'].sum())
-        #print(res1)
-        #print(Q,e)
-
-        BN_test2 = BNReasoner2('testing/lecture_example.BIFXML')
-        
-        res3 = BN_test2.posterior_marginal(['hear-bark', 'dog-out'], [('bowel-problem', False), ('family-out', True)])
-        print(res3)
-        res2 = BN_test.marginal_dist(['Winter?'], {'Wet Grass?': True}, 'min_degree')
-        res2['p'] = res2['p']/float(res2['p'].sum())
-        print(res2)
-        break
+    
         try:
             BN_test.marginalDistribution(Q, e)
+
         except:
             print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
             return False
@@ -88,20 +72,10 @@ def test_marginalDistribution2(BN):
     return True
 
 def test_marginalDistribution3(BN):
-    # reader = XMLBIFReader("testing/lecture_example.BIFXML")
-    # model = reader.get_model()
-
-    # print(model)
-    # # infer = CausalInference(model)
-    # print(infer.query(['Rain?', 'Sprinkler?']))
-    #print(VariableElimination(model).query(['Rain?', 'Sprinkler?'], evidence={'Winter?': 'False'}))
+    variable_set = BN.bn.get_all_variables()
 
     ### Test marginalDistribution
     # Test for prior distribution
-    
-    #print(BN.marginalDistribution(['Rain?', 'Sprinkler?'], {'Winter?': True}))
-
-
     perms = []
     for i in range(1,len(variable_set)):
         comb = itertools.combinations(variable_set, i)
@@ -116,11 +90,11 @@ def test_marginalDistribution3(BN):
             
             BN_test.marginalDistribution(Q)
             
-            # try:
-            #     BN_test.marginalDistribution(Q)
-            # except:
-            #     print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, None))
-            #     return False
+            try:
+                BN_test.marginalDistribution(Q)
+            except:
+                print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, None))
+                return False
 
     return True
      
@@ -163,6 +137,38 @@ def test_ordering(BN):
     # Not quite sure how to test
     pass
 
+def test_MAP(BN):
+    ### Test marginalDistribution
+    # Take combinations of all variables 
+    variable_set = BN.bn.get_all_variables()
+    combs = list(itertools.combinations(variable_set, 2))
+    choices = np.arange(1, 2)
+
+    # Take splits of the variable set
+    splits = set()
+    for comb in combs:
+        for choice in choices:
+            splits.add(tuple([frozenset(comb[:choice]), frozenset(comb[choice:])]))
+
+    splits = list(splits)
+    
+    # Test marginalDistribution for all splits
+    for split in splits:
+        
+        BN_test = BNReasoner('testing/dog_problem.BIFXML')
+        Q = list(split[0])
+        e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
+    
+        try:
+            BN_test.MAP(Q, e, 'min_degree')
+
+        except:
+            print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
+            assert False
+
+    assert True
+   
+
 def test(BN):
     #test_marginalDistribution(BN)
     #test_marginalDistribution2(BN)
@@ -174,9 +180,10 @@ def test(BN):
     # test_maxingout(BN) ## Works
     # test_fact_mult(BN) ## Works
     # test_ordering(BN) ## Not Sure
+    test_MAP(BN)
     pass
     
 if __name__ == "__main__":
-    BN = BNReasoner('testing/lecture_example.BIFXML')
+    BN = BNReasoner('testing/dog_problem.BIFXML')
     # BN.bn.draw_structure()
     test(BN)
