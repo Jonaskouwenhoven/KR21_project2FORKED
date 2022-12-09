@@ -67,9 +67,9 @@ def test_marginalDistribution2(BN):
 
         except:
             print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
-            return False
+            assert False
 
-    return True
+    assert True
 
 def test_marginalDistribution3(BN):
     variable_set = BN.bn.get_all_variables()
@@ -94,9 +94,9 @@ def test_marginalDistribution3(BN):
                 BN_test.marginalDistribution(Q)
             except:
                 print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, None))
-                return False
+                assert False
 
-    return True
+    assert True
      
 def test_dsep(BN):
     assert (BN.dSeperation(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Winter?'},{'Rain?'}, {'Slippery Road?'})))
@@ -170,9 +170,9 @@ def test_MAP(BN):
    
 
 def test(BN):
-    #test_marginalDistribution(BN)
+    #test_marginalDistribution1(BN)
     #test_marginalDistribution2(BN)
-    # test_marginalDistribution3(BN)
+    #test_marginalDistribution3(BN)
     # test_dsep(BN) ## Correct
     # test_ind(BN) ## Correct
     # test_prune(BN) ## Not sure

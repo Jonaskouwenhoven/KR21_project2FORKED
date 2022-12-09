@@ -5,6 +5,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 #import test_BNR
 import numpy as np
+import itertools
 import pgmpy
 
 class BNReasoner:
@@ -137,37 +138,13 @@ class BNReasoner:
             return f
         
         else:
-            new_f = f
-        
-            new_columns = [c for c in (new_f.columns) if c not in [X, 'p']]
-            print(f, X)
-            print(f.loc[new_f.groupby(new_columns)["p"].idxmax(), X])
-            new_f = new_f.groupby(new_columns)["p"].max().reset_index()
-            #new_f['p']  = new_f['p'] / new_f['p'].sum()
-         
+            new_columns = [c for c in (f.columns) if c not in [X, 'p']]
+            max_index = f.loc[f.groupby(new_columns)["p"].idxmax(), X].reset_index(drop=True)
+            maxed = f.groupby(new_columns)["p"].max().reset_index()
+            new_f = pd.concat([max_index, maxed], axis=1)
+            new_f['p']  = new_f['p'] / float(new_f['p'].sum())
             return new_f
 
-    
-    def maxingOut1(self, X, factor):
-        ### Deze functie werkt niet zoals ik zou verwachten
-        #JONAS
-        #TODO: Maxing-out: Given a factor and a variable X, compute the factor in which X is maxed-out. Remember to also keep track of which instantiation of X led to the maximized value. (5pts)
-     
-        falseDf = factor.loc[factor[X] == False].reset_index(drop=True)
-        trueDf = factor.loc[factor[X] == True].reset_index(drop=True)
-        print(falseDf)
-        print(trueDf)
-
-        dfList = []
-        for i, el in enumerate(zip(falseDf['p'].to_list(), trueDf['p'].to_list())):
-            if el[0] > el[1]:
-                dfList.append(falseDf.iloc[i])
-            else:
-                dfList.append(trueDf.iloc[i])
-                
-        maxedout = (pd.DataFrame(dfList))
-        
-        return maxedout
     
     def factorMultiplication(self, f, g):
         #JONAS
@@ -177,29 +154,38 @@ class BNReasoner:
         g_columns = (g.columns.drop('p'))
       
         double = list((f_columns).intersection(g_columns))
-        
-        # if not double:
-        #     return False
-      
-    
+ 
         if len(double) > 0:
             new = pd.merge(f, g, on=double)
             new['p'] = new['p_x'] * new['p_y']
             new.drop(columns=['p_x', 'p_y'], inplace=True)
         else:
-            # Dit gaat not niet altijd goed
             # merge two pd.DataFrames conditional probability tables without common columns            
-            len_g = len(g.index)
-            len_f = len(f.index)
-
-            f = pd.concat([f]*len_g, ignore_index=True)
-            g = pd.concat([g]*len_f, ignore_index=True)
-
-            g_columns = list(g.columns)[:-1]
             
-            new = pd.concat([g[g_columns], f], axis=1)        
-            new['p'] = new['p']*g['p']
+            ### Get column length
+            c_len_g = len(g.columns)-1
+            c_len_f = len(f.columns)-1
 
+            ### Get final shape
+            table = pd.DataFrame(list(itertools.product([False, True], repeat=c_len_g+c_len_f)))
+            
+            ### Separate chape over variables
+            g_choices = table.iloc[:, :c_len_g]
+            f_choices = table.iloc[:, c_len_g:]
+
+            g_choices.columns = g.columns[:-1]
+            f_choices.columns = f.columns[:-1]
+
+            ### Get the probability values of the variables
+            g_ordered = pd.merge(g_choices, g, on=g_choices.columns.tolist(), how='left')
+            f_ordered = pd.merge(f_choices, f, on=f_choices.columns.tolist(), how='left')
+
+            ### Merge the two tables
+            new = pd.concat([g_ordered.iloc[:,:-1], f_ordered.iloc[:,:-1]], axis=1)
+            new['p'] = f_ordered['p']*g_ordered['p']
+
+            ### Remove NaN values which correspond to the unavailable instances of the evidence nodes
+            new = new.dropna().reset_index(drop = True)
         return new
 
     def factorsMultiplication(self, factors):
@@ -362,6 +348,7 @@ class BNReasoner:
 
         ### 4. Set variable lists            
         evidence_node =  list(e.keys()) 
+        self.evidence_node = evidence_node
         Q_plus_e = Q + evidence_node 
         elimination_variables =  (
             set(variables)
@@ -404,8 +391,13 @@ class BNReasoner:
             helper = self.maxingOut(q, helper)
 
         MAP = helper
-    
-        pass
+
+        ### 4. Get MAP value
+        for evidence in e:
+            evidence_value = e[evidence]
+            MAP = MAP[MAP[evidence] == evidence_value]
+
+        return MAP 
         
     def MEP(self):
         #TODO: Compute the most probable explanation given an evidence e. (1.5pts)
