@@ -334,9 +334,11 @@ class BNReasoner:
                     finalCpt = self.factorMultiplication(elimCpt, nodeCpt)
                     resultCpt = self.marginalization(elim, finalCpt)
                     totalCpts.append(resultCpt)
-                    # self.bn.update_cpt(node, resultCpt)
+                    self.bn.update_cpt(node, resultCpt)
+                    
         for cpt in self.bn.get_all_cpts():
             print(self.bn.get_all_cpts()[cpt])  #### HIER KOMEN VM DE GOEIE WAARDES UIT!!!!!
+            
         return 
 
         
@@ -380,7 +382,7 @@ if __name__ == '__main__':
     model = reader.get_model()
     BN = BNReasoner('testing/lecture_example.BIFXML')
     margDist2 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
-
+    print(margDist2)
     margDist = BN.marginalDistribution(['Winter?', 'Rain?', "Wet Grass?"], e={'Slippery Road?': 'False'})
-    print(margDist)
+    # print(margDist)
     exit()

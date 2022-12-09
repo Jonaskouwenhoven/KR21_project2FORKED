@@ -31,22 +31,22 @@
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>UkraineWarEvents</NAME>
+        <NAME>UkraineCivilianCasualties</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>RussiaResponseToWar</NAME>
+        <NAME>RussiaInfiltratingUkraine</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>MilitaryActionByRussia</NAME>
+        <NAME>SovietNostalgia</NAME> 
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>MilitaryActionByUkraine</NAME>
+        <NAME>UkraineMilitaryAlert</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
@@ -56,7 +56,7 @@
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>PoliticalDevelopmentsInUkraine</NAME>
+        <NAME>InternationalSupportForUkraine</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
@@ -66,72 +66,70 @@
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>InternationalSupportForUkraine</NAME>
+        <NAME>RussiaAttackNato</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <VARIABLE TYPE="nature">
-        <NAME>RussianEconomy</NAME>
+        <NAME>NatoInvolved</NAME>
         <OUTCOME>True</OUTCOME>
         <OUTCOME>False</OUTCOME>
     </VARIABLE>
     <!-- PCTs -->
     <DEFINITION> <!--UkraineWarEvents-->
-        <FOR>UkraineWarEvents</FOR>
+        <FOR>UkraineMilitaryAlert</FOR>
         <TABLE>0.5 0.5</TABLE>
     </DEFINITION>
     <DEFINITION> <!--PoliticalDevelopmentsInUkraine-->
-        <FOR>PoliticalDevelopmentsInUkraine</FOR>
+        <FOR>RussiaInfiltratingUkraine</FOR>
         <TABLE>0.5 0.5</TABLE>
     </DEFINITION>
     <DEFINITION> <!--RussiaResponseToWar-->
-        <FOR>RussiaResponseToWar</FOR>
+        <FOR>SovietNostalgia</FOR>
         <TABLE>0.5 0.5</TABLE>
     </DEFINITION>
     <DEFINITION>
-        <FOR>MilitaryActionByUkraine</FOR>
-        <GIVEN>UkraineWarEvents</GIVEN>
-        <GIVEN>PoliticalDevelopmentsInUkraine</GIVEN>
-        <TABLE>0.1 0.9 0.8 0.2 0.8 0.2 0.1 0.9</TABLE>
-    </DEFINITION>
-    <DEFINITION>
-        <FOR>MilitaryActionByRussia</FOR>
-        <GIVEN>UkraineWarEvents</GIVEN>
-        <GIVEN>RussiaResponseToWar</GIVEN>
-        <TABLE>0.2 0.8 0.4 0.6 0.3 0.7 0.6 0.4</TABLE>
-    </DEFINITION>
-    <DEFINITION>
-        <FOR>DomesticSupportForRussiaActions</FOR>
-        <GIVEN>UkraineWarEvents</GIVEN>
-        <GIVEN>RussiaResponseToWar</GIVEN>
-        <GIVEN>MilitaryActionByUkraine</GIVEN>
-         <TABLE>0.1 0.9 0.2 0.8 0.6 0.4 0.4 0.6 0.3 0.7 0.8 0.2 0.7 0.3 0.9 0.1</TABLE>
+        <FOR>UkraineCivilianCasualties</FOR>
+        <GIVEN>UkraineMilitaryAlert</GIVEN>
+        <GIVEN>RussiaInfiltratingUkraine</GIVEN>
+        <TABLE>0.9 0.1 0.1 0.9 0.9 0.1 0.7 0.3</TABLE>
     </DEFINITION>
     <DEFINITION>
         <FOR>InternationalSupportForUkraine</FOR>
-        <GIVEN>UkraineWarEvents</GIVEN>
-        <GIVEN>RussiaResponseToWar</GIVEN>
-        <!-- <TABLE>TODO give Values</TABLE> -->
-        <TABLE>0.1 0.9 0.2 0.8 0.6 0.4 0.7 0.3</TABLE>
+        <GIVEN>UkraineCivilianCasualties</GIVEN>
+        <GIVEN>RussiaInfiltratingUkraine</GIVEN>
+        <TABLE>0.5 0.5 0.2 0.8 0.4 0.6 0.1 0.9</TABLE>
     </DEFINITION>
     <DEFINITION>
         <FOR>EconomicSanctionsAgainstRussia</FOR>
-        <GIVEN>UkraineWarEvents</GIVEN>
+        <GIVEN>SovietNostalgia</GIVEN>
         <GIVEN>InternationalSupportForUkraine</GIVEN>
-        <TABLE>0.1 0.9 0.5 0.5 0.8 0.2 0.6 0.4</TABLE>
+         <TABLE>0.9 0.1 0.4 0.6 0.8 0.2 0.1 0.9</TABLE>
     </DEFINITION>
     <DEFINITION>
-        <FOR>RussianEconomy</FOR>
-        <GIVEN>MilitaryActionByRussia</GIVEN>
+        <FOR>DomesticSupportForRussiaActions</FOR>
+        <GIVEN>SovietNostalgia</GIVEN>
         <GIVEN>EconomicSanctionsAgainstRussia</GIVEN>
-    <TABLE>0.1 0.9 0.5 0.5 0.8 0.2 0.6 0.4</TABLE>
+        <!-- <TABLE>TODO give Values</TABLE> -->
+        <TABLE>0.2 0.8 0.2 0.8 0.2 0.8 0.1 0.9</TABLE>
+    </DEFINITION>
+    <DEFINITION>
+        <FOR>RussiaAttackNato</FOR>
+        <GIVEN>DomesticSupportForRussiaActions</GIVEN>
+        <GIVEN>EconomicSanctionsAgainstRussia</GIVEN>
+        <TABLE>0.99 0.01 0.8 0.2 0.8 0.2 0.6 0.4</TABLE>
+    </DEFINITION>
+    <DEFINITION>
+        <FOR>NatoInvolved</FOR>
+        <GIVEN>InternationalSupportForUkraine</GIVEN>
+        <GIVEN>RussiaAttackNato</GIVEN>
+    <TABLE>0.99 0.01 0.4 0.6 0.8 0.2 0.9 0.1</TABLE>
     </DEFINITION>
     <DEFINITION>
         <FOR>RussiaStartingANuclearWar</FOR>
-        <GIVEN>MilitaryActionByUkraine</GIVEN>
+        <GIVEN>NatoInvolved</GIVEN>
         <GIVEN>DomesticSupportForRussiaActions</GIVEN>
-        <GIVEN>RussianEconomy</GIVEN>
-         <TABLE>0.1 0.9 0.2 0.8 0.6 0.4 0.4 0.6 0.3 0.7 0.8 0.2 0.7 0.3 0.9 0.1</TABLE>
+    <TABLE>0.99 0.01 0.8 0.2 0.6 0.4 0.8 0.2</TABLE>
     </DEFINITION>
 </NETWORK>
 </BIF>
