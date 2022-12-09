@@ -142,7 +142,7 @@ class BNReasoner:
             max_index = f.loc[f.groupby(new_columns)["p"].idxmax(), X].reset_index(drop=True)
             maxed = f.groupby(new_columns)["p"].max().reset_index()
             new_f = pd.concat([max_index, maxed], axis=1)
-            new_f['p']  = new_f['p'] / float(new_f['p'].sum())
+            
             return new_f
 
     
@@ -322,6 +322,41 @@ class BNReasoner:
 
         return joint_marginal 
 
+    def variableEliminationMaxedOut(self, elimination_variables, order_method = 'min_degree'):
+        #SICCO
+        #TODO: Variable Elimination: Sum out a set of variables by using variable elimination. (5pts)
+        # Deze functie klopt nog niet helemaal...
+
+        ### 1. Get elimination order
+        elimination_order = self.ordering(elimination_variables, order_method) if len(elimination_variables) != 0 else [] # get elimination order
+
+        ### 3. Get all cpts of variables
+        factor_dict = self.bn.get_all_cpts()
+  
+        ### 4. Eliminate variables
+        for idx, node in enumerate(elimination_order):
+            # get relevant factors
+            working_factors, factor_dict = self.get_relevant_factors(node, factor_dict) # gets all the factors with node in the columns, and return factors without the used factors
+            
+            # multiply factors
+            factor_prod = self.factorsMultiplication(working_factors)
+
+            # margninalize
+            marg_factor = self.marginalization(node, factor_prod)
+      
+            # update work_factors
+            factor_dict[f'f{idx+1}'] = marg_factor
+
+        # multiply all factors
+        final_factors = []
+        for key in factor_dict:
+            final_factors.append(factor_dict[key])
+        
+        joint_marginal = self.factorsMultiplication(final_factors)
+
+        return joint_marginal 
+
+
     def marginalDistribution(self, Q, e = {}, order_method = 'min_degree'):
         #SICCO
         #TODO: Marginal Distributions: Given query variables Q and possibly empty evidence e, compute the marginal distribution P(Q|e). Note that Q is a subset of the variables in the Bayesian network X with Q ⊂ X but can also be Q = X. (2.5pts)
@@ -382,11 +417,11 @@ class BNReasoner:
         Q_plus_e = Q + evidence_node
 
         ### 2. Get joint marginal
-        joint_marginal = self.marginalDistribution(Q_plus_e, order_method= order_method)
-
+        joint = self.marginalDistribution(Q_plus_e, order_method= order_method)
+        
         ### 3. Get MAP by maxing out all variables in Q
     
-        helper = joint_marginal
+        helper = joint
         for q in Q:
             helper = self.maxingOut(q, helper)
 
@@ -395,13 +430,53 @@ class BNReasoner:
         ### 4. Get MAP value
         for evidence in e:
             evidence_value = e[evidence]
+            
             MAP = MAP[MAP[evidence] == evidence_value]
 
         return MAP 
         
-    def MEP(self):
+    def MPE(self, Q, e = {}, order_method = 'min_degree'):
         #TODO: Compute the most probable explanation given an evidence e. (1.5pts)
-        pass
+         ### 1. Reduce factors with regard to the evidence
+        if len(e) > 0 :
+            # get all factors
+            factors = self.bn.get_all_cpts()
+    
+            # reduce factors with regard to e
+            for node in self.bn.get_all_variables():
+                new_factor = self.bn.reduce_factor(pd.Series(e), factors[node])
+                self.bn.update_cpt(node, new_factor)
+
+
+        ### 2. Prune network
+        self.netPrune(Q, e)
+        variables = self.bn.get_all_variables()
+        
+        ### 3. Reduce evidence factor
+        ev_fac = 1
+        for ev in e:
+            ev_fac *= self.bn.get_cpt(ev)['p'].sum()
+
+        ### 4. Set variable lists            
+        evidence_node =  list(e.keys()) 
+        self.evidence_node = evidence_node
+        Q_plus_e = Q + evidence_node 
+        elimination_variables =  (
+            set(variables)
+            - set(Q_plus_e)
+        )
+
+        ### 5. Compute joint marginal
+        joint = self.variableEliminationMaxedOut(elimination_variables, order_method) 
+ 
+        ### 6. Compute MPE
+        helper = joint
+        for q in Q:
+            helper = self.maxingOut(q, pd.DataFrame(helper))
+        MPE = helper
+     
+        return MPE
+
         
         
 

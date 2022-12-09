@@ -163,7 +163,38 @@ def test_MAP(BN):
             BN_test.MAP(Q, e, 'min_degree')
 
         except:
-            print('Error in marginalDistribution with Q = {} and e = {}'.format(Q, e))
+            print('Error in MAP with Q = {} and e = {}'.format(Q, e))
+            assert False
+    
+    assert True
+
+def test_MPE(BN):
+    ### Test marginalDistribution
+    # Take combinations of all variables 
+    variable_set = BN.bn.get_all_variables()
+    combs = list(itertools.combinations(variable_set, 2))
+    choices = np.arange(1, 2)
+
+    # Take splits of the variable set
+    splits = set()
+    for comb in combs:
+        for choice in choices:
+            splits.add(tuple([frozenset(comb[:choice]), frozenset(comb[choice:])]))
+
+    splits = list(splits)
+    
+    # Test marginalDistribution for all splits
+    for split in splits:
+        
+        BN_test = BNReasoner('testing/dog_problem.BIFXML')
+        Q = list(split[0])
+        e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
+    
+        try:
+            BN_test.MPE(Q, e, 'min_degree')
+
+        except:
+            print('Error in MPE with Q = {} and e = {}'.format(Q, e))
             assert False
 
     assert True
@@ -181,6 +212,7 @@ def test(BN):
     # test_fact_mult(BN) ## Works
     # test_ordering(BN) ## Not Sure
     test_MAP(BN)
+    #test_MPE(BN)
     pass
     
 if __name__ == "__main__":
