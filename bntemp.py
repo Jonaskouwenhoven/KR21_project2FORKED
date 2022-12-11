@@ -380,7 +380,7 @@ if __name__ == '__main__':
     model = reader.get_model()
     BN = BNReasoner('testing/lecture_example.BIFXML')
     margDist2 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
-
+    print(margDist2)
     margDist = BN.marginalDistribution(['Winter?', 'Rain?', "Wet Grass?"], e={'Slippery Road?': 'False'})
     print(margDist)
     exit()
