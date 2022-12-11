@@ -4,11 +4,6 @@ import pandas as pd
 import copy
 import networkx as nx
 from BNReasoner import BNReasoner
-from pgmpy.inference import CausalInference
-from VariableEliminate import VariableElimination
-from pgmpy.inference import EliminationOrder
-from pgmpy.readwrite import XMLBIFReader
-import pgmpy
 
 def test_marginalDistribution1(BN):
     ### Test marginalDistribution
@@ -30,7 +25,7 @@ def test_marginalDistribution1(BN):
         BN_test = copy.deepcopy(BN)
         Q = list(split[0])
         e = dict(zip(list(split[1]), np.random.choice([True, False], size=len(split[1]))))
-
+        
         try:
             BN_test.marginalDistribution(Q, e)
         except:
@@ -99,9 +94,9 @@ def test_marginalDistribution3(BN):
     assert True
      
 def test_dsep(BN):
-    assert (BN.dSeperation(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Winter?'},{'Rain?'}, {'Slippery Road?'})))
-    assert (BN.dSeperation(['Slippery Road?'], ['Rain?'], ['Winter?'])  ==  (nx.d_separated(BN.bn.structure, {'Rain?'},{'Slippery Road?'}, {'Winter?'})))
-    assert (BN.dSeperation(['Sprinkler?'], ['Slippery Road?'], ['Winter?']) ==  (nx.d_separated(BN.bn.structure, {'Sprinkler?'},{'Slippery Road?'}, {'Winter?'})))
+    assert (BN.dSeparation(['Winter?'], ['Rain?'], ['Slippery Road?']) == (nx.d_separated(BN.bn.structure, {'Winter?'},{'Rain?'}, {'Slippery Road?'})))
+    assert (BN.dSeparation(['Slippery Road?'], ['Rain?'], ['Winter?'])  ==  (nx.d_separated(BN.bn.structure, {'Rain?'},{'Slippery Road?'}, {'Winter?'})))
+    assert (BN.dSeparation(['Sprinkler?'], ['Slippery Road?'], ['Winter?']) ==  (nx.d_separated(BN.bn.structure, {'Sprinkler?'},{'Slippery Road?'}, {'Winter?'})))
 
 def test_ind(BN):
 
@@ -121,7 +116,8 @@ def test_marg(BN):
     
 def test_maxingout(BN):
 
-    maxed_out = (BN.maxingOut('Rain?'))
+    maxed_out = (BN.maxingOut('Rain?', BN.bn.get_cpt('Rain?')))
+   
     assert maxed_out.loc[maxed_out['Winter?'] == True]['p'].to_list()[0] == 0.8
     assert maxed_out.loc[maxed_out['Winter?'] == False]['p'].to_list()[0] == 0.9
 
@@ -200,22 +196,27 @@ def test_MPE(BN):
     assert True
    
 
-def test(BN):
-    #test_marginalDistribution1(BN)
+def test():
+    BN = BNReasoner('testing/dog_problem.BIFXML')
+    test_marginalDistribution1(BN)
     test_marginalDistribution2(BN)
-    #test_marginalDistribution3(BN)
-    # test_dsep(BN) ## Correct
-    # test_ind(BN) ## Correct
+    test_marginalDistribution3(BN)
+    
+    BN = BNReasoner('testing/lecture_example.BIFXML')
+    test_dsep(BN) ## Correct
+    test_ind(BN) ## Correct
     # test_prune(BN) ## Not sure
-    # test_marg(BN) ## Works
-    # test_maxingout(BN) ## Works
-    # test_fact_mult(BN) ## Works
+    test_marg(BN) ## Works
+    test_maxingout(BN) ## Works
+    test_fact_mult(BN) ## Works
     # test_ordering(BN) ## Not Sure
-    #test_MAP(BN)
-    #test_MPE(BN)
+
+    BN = BNReasoner('testing/dog_problem.BIFXML')
+    test_MAP(BN)
+    test_MPE(BN)
     pass
     
 if __name__ == "__main__":
-    BN = BNReasoner('testing/dog_problem.BIFXML')
+
     # BN.bn.draw_structure()
-    test(BN)
+    test()

@@ -10,10 +10,13 @@ from itertools import combinations
 import pgmpy
 
 class BNReasoner:
-    def __init__(self, net: Union[str, BayesNet]):
+    def __init__(self, net: Union[str, BayesNet], prune_edge: bool = True, prune_node: bool = True):
         """
         :param net: either file path of the bayesian network in BIFXML format or BayesNet object
         """
+        self.prune_edge = prune_edge
+        self.prune_node = prune_node
+
         if type(net) == str:
             # constructs a BN object
             self.bn = BayesNet()
@@ -50,26 +53,27 @@ class BNReasoner:
 
         
         ### Edge Pruning
-        for e in evidence:
-            children = self.bn.get_children(e)
-            for child in children:
-
-                self.bn.del_edge((e, child))
+        if self.prune_edge:
+            for e in evidence:
+                children = self.bn.get_children(e)
+                for child in children:
+                    self.bn.del_edge((e, child))
 
         ### Node Pruning
-        subgraph = self.bn.structure.subgraph(Q).copy()
-        
-        # Get dependent variables
-        for node in Q_plus_e:
-            dependent_nodes = list(nx.algorithms.dag.ancestors(self.bn.structure, node))
-            dependent_nodes.append(node)
-            dependent_nodes_subgraph = self.bn.structure.subgraph(dependent_nodes).copy()
-            subgraph = nx.algorithms.operators.binary.compose(subgraph, dependent_nodes_subgraph)
-        
-        # Drop all irrelevant variables
-        for node in self.bn.get_all_variables():
-            if node not in list(subgraph.nodes()) and node not in evidence_nodes:
-                self.bn.del_var(node)
+        if self.prune_node:    
+            subgraph = self.bn.structure.subgraph(Q).copy()
+            
+            # Get dependent variables
+            for node in Q_plus_e:
+                dependent_nodes = list(nx.algorithms.dag.ancestors(self.bn.structure, node))
+                dependent_nodes.append(node)
+                dependent_nodes_subgraph = self.bn.structure.subgraph(dependent_nodes).copy()
+                subgraph = nx.algorithms.operators.binary.compose(subgraph, dependent_nodes_subgraph)
+            
+            # Drop all irrelevant variables
+            for node in self.bn.get_all_variables():
+                if node not in list(subgraph.nodes()) and node not in evidence_nodes:
+                    self.bn.del_var(node)
 
         return self.bn
 
@@ -111,7 +115,7 @@ class BNReasoner:
     def independence(self, X, Y, Z):
         #CAS
         #TODO: Independence: Given three sets of variables X, Y, and Z, determine whether X is independent of Y given Z. (Hint: Remember the connection between d-separation and independence) (1.5pt)
-        if self.dSeperation(X, Y, Z):
+        if self.dSeparation(X, Y, Z):
             return True
         
         return False
@@ -393,7 +397,6 @@ class BNReasoner:
             for q in Q:
                 helper = self.marginalization(q, pd.DataFrame(helper))
             pr_e = helper
-            
             ### 7. Compute posterior
             posterior = joint
             posterior['p'] = joint['p'] / float(pr_e['p'])
