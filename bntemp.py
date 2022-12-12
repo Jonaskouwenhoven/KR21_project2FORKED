@@ -380,7 +380,9 @@ class BNReasoner:
 if __name__ == '__main__':
     reader = XMLBIFReader("testing/lecture_example.BIFXML")
     model = reader.get_model()
-    BN = BNReasoner('testing/lecture_example.BIFXML')
+    BN = BNReasoner('testing/Russia.BIFXML')
+    BN.bn.draw_structure()
+    exit()
     margDist2 = VariableElimination(model).query(['Winter?', 'Rain?', "Wet Grass?"], evidence={'Slippery Road?': 'True'})
     print(margDist2)
     margDist = BN.marginalDistribution(['Winter?', 'Rain?', "Wet Grass?"], e={'Slippery Road?': 'False'})

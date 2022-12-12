@@ -78,15 +78,15 @@
     <!-- PCTs -->
     <DEFINITION> <!--UkraineWarEvents-->
         <FOR>UkraineMilitaryAlert</FOR>
-        <TABLE>0.5 0.5</TABLE>
+        <TABLE>0.6 0.4</TABLE>
     </DEFINITION>
     <DEFINITION> <!--PoliticalDevelopmentsInUkraine-->
         <FOR>RussiaInfiltratingUkraine</FOR>
-        <TABLE>0.5 0.5</TABLE>
+        <TABLE>0.4 0.6</TABLE>
     </DEFINITION>
     <DEFINITION> <!--RussiaResponseToWar-->
         <FOR>SovietNostalgia</FOR>
-        <TABLE>0.5 0.5</TABLE>
+        <TABLE>0.2 0.8</TABLE>
     </DEFINITION>
     <DEFINITION>
         <FOR>UkraineCivilianCasualties</FOR>
