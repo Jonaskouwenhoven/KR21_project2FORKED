@@ -26,7 +26,6 @@ class BNReasoner:
             self.bn = net
             
 
-    # TODO: This is where your methods should go
     
     
     def netPrune(self, Q, evidence):
@@ -474,22 +473,4 @@ class BNReasoner:
 
         
         
-if __name__ == '__main__':
-    
-    BN = BNReasoner('testing/dog_problem.BIFXML')
-    # cptWet = BN.bn.get_cpt("Wet Grass?")
-    # cptRain = BN.bn.get_cpt("Rain?")
-    #BN.factorMultiplication(cptWet, cptRain)
 
-    ### Test ordering, variable elimination and marginal distribution
-    test_val1 = test_BNR.test_marginalDistribution1(BN)
-    test_val2  = test_BNR.test_marginalDistribution2(BN) 
-    test_val3 = test_BNR.test_marginalDistribution3(BN)
-    
-    if test_val1 and test_val2 and test_val3:
-        print("Test marginal distribution passed")
-    else:
-        print("Test marginal distribution failed")
-        exit()
-
-    exit()
